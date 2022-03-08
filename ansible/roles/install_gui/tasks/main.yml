@@ -1,0 +1,10 @@
+---
+- name: Install Server GUI
+  dnf:
+    name: '@Server with GUI'
+    state: installed
+  register: install_gui_out
+
+- name: Start GUI on boot
+  shell: systemctl set-default graphical
+  when: install_gui_out.changed

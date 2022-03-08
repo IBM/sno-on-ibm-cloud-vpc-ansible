@@ -1,0 +1,2 @@
+state_dir: ".cloud-resources"
+network_interface_name: "eth0"

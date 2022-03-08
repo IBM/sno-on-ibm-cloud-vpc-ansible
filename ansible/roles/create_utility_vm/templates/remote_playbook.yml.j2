@@ -1,0 +1,71 @@
+---
+- name: Configure Utility VM
+  hosts: utility_vm
+
+  vars:
+    cluster_domain: "{{ sno_domain_name }}"
+    cluster_name: "{{ sno_cluster_name }}"
+    mac_address: " {{ sno_mac_address }}"
+
+  tasks:
+
+    - name: Upgrade all packages
+      dnf:
+        name: "*"
+        state: latest
+
+    - name: Install DHCP
+      dnf:
+        name:
+          - dhcp
+          - libselinux-python3
+        state: installed
+
+    - name: Set DHCP interface
+      lineinfile:
+        path: /etc/sysconfig/dhcpd
+        line: DHCPDARGS=eth0
+        state: present
+
+    - name: Create DHCP config
+      template:
+       src: /home/kvmadmin/setup/dhcp.conf.j2
+       dest: /etc/dhcp/dhcpd.conf
+       backup: yes
+
+    - name: Start the DHCP service
+      systemd:
+        name: dhcpd
+        state: started
+        enabled: yes
+
+    - name: Install named
+      dnf:
+        name:
+          - bind
+          - bind-utils
+        state: installed
+
+    - name: Create named config
+      template:
+        src: /home/kvmadmin/setup/named.conf.j2
+        dest: /etc/named.conf
+        backup: yes
+
+    - name: Create forward dns zone
+      template:
+       src: /home/kvmadmin/setup/forward.db.j2
+       dest: /var/named/dynamic/forward.db
+       backup: no
+
+    - name: Create reverse dns zone
+      template:
+       src: /home/kvmadmin/setup/192.168.122.db.j2
+       dest: /var/named/dynamic/192.168.122.db
+       backup: no
+
+    - name: Start the named service
+      systemd:
+        name: named
+        state: started
+        enabled: yes

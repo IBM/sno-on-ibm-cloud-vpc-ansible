@@ -1,0 +1,19 @@
+app="/usr/sbin/parted {{ /dev/vdb }}"
+
+/usr/bin/expect <<EOF
+spawn "$app"
+expect "GNU Parted 3.2"
+expect "Using /dev/vdb"
+expect "Welcome to GNU Parted! Type 'help' to view a list of commands."
+expect "(parted)"
+send "mklabel gpt\r"
+expect "Warning: The existing disk label on /dev/vdb will be destroyed and all data on this disk will be lost. Do you want to continue?"
+expect "Yes/No?"
+send "yes\r"
+expect "(parted)"
+send "mkpart primary 0GB 100%\r"
+expect "(parted)"
+send "q\r"
+expect eof
+exit
+EOF

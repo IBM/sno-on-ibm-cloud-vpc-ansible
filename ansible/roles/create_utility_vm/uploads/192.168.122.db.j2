@@ -1,0 +1,16 @@
+$TTL 86400      ; 1 day
+@ IN SOA ns1.{{ cluster_domain }}. root.{{ cluster_domain }}. (
+                                            2020011800 ;Serial
+                                            3600 ;Refresh
+                                            1800 ;Retry
+                                            604800 ;Expire
+                                            86400 ;Minimum TTL
+)
+
+;Name Server Information
+@ IN NS ns1.{{ cluster_domain }}.
+
+ns1     IN      A       192.168.122.2
+
+3                       PTR     sno.{{ cluster_name }}.{{ cluster_domain }}.
+2                       PTR     ns1.{{ cluster_domain }}.

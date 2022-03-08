@@ -1,0 +1,5 @@
+---
+- name: Disable SE Linux on host
+  selinux:
+    state: disabled
+  register: selinux_out

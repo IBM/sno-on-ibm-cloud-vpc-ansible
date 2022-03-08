@@ -1,0 +1,90 @@
+---
+- hosts: localhost
+  gather_facts: true
+
+  pre_tasks:
+    - name: "Verify that IBM Cloud API KEY is  defined"
+      assert:
+        that: lookup('env','IC_API_KEY') is defined
+        fail_msg: "IC_API_KEY env variable is required for this playbook "
+        success_msg: "IBM Cloud API KEY is defined"
+
+    - name: "Verify that required variables are defined"
+      assert:
+        that:  "{{ item }} is defined"
+        fail_msg: "variable {{ item }} is required for this playbook "
+        success_msg: "Required variable {{ item }} is defined"
+      with_items:
+        - name_prefix
+        - vsi_profile
+        - vsi_image
+        - ssh_public_key_path
+        - total_ipv4_address_count
+        - zone
+        - region
+        - resource_group_name
+
+  roles:
+    - provision_kvm_host
+
+  post_tasks:
+    - name: Add VSI to Ansible inventory
+      add_host:
+        name: "{{ fip.address }}"
+        ansible_user: root
+        groups: kvm_vsi
+        ansible_ssh_extra_args: -o StrictHostKeyChecking=no
+      when: fip.address not in groups['kvm_vsi'] | default([])
+
+    - name: Wait for VSI to become reachable over SSH
+      wait_for:
+        host: "{{ fip.address }}"
+        port: 22
+        delay: 20
+        timeout: 180
+        sleep: 10
+        state: started
+
+- hosts: kvm_vsi
+  gather_facts: false
+  become: yes
+
+  pre_tasks:
+
+    - name: Install Python on remote server for Ansible
+      raw: "{{ item }}"
+      loop:
+        - yum update -y
+        - yum install -y python3
+
+    - name: Collect OS information
+      command: cat /etc/os-release
+      register: os_info
+
+
+    - name: Print OS information
+      debug:
+        var: os_info.stdout_lines
+
+    - name: Get Floating IP info from previous play
+      set_fact:
+        fip: "{{ hostvars['localhost']['fip']}}"
+
+  roles:
+    - role: format_data_disk
+    - role: disable_se_linux
+      when: disable_se_linux_flag
+    - role: reboot_vsi
+      when: disable_se_linux_flag and selinux_out is defined and selinux_out.reboot_required
+
+  post_tasks:
+
+    - name: Show access info
+      vars:
+
+         msg: |
+                Your VSI has been successfully provisioned !
+                Login in via SSH using the command:
+                ssh root@{{ fip.address }}
+      debug:
+        msg: "{{ msg.split('\n') }}"

@@ -1,0 +1,21 @@
+#!/bin/bash
+
+#app=/usr/bin/vncpasswd
+creds="{{ lookup('password', '/dev/null chars=ascii_letters,digits,hexdigits length=8') }}"
+
+
+# /usr/bin/expect <<EOF
+# spawn "$app"
+# expect "Password:"
+# send "$creds\r"
+# expect "Verify:"
+# send "$creds\r"
+# expect "Would you like to enter a view-only password (y/n)?"
+# send "n\r"
+# expect eof
+# exit
+# EOF
+
+printf "${creds}\n${creds}\n\n" | vncpasswd
+
+exit 0

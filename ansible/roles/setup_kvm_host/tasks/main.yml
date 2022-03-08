@@ -1,0 +1,157 @@
+---
+
+- name: Install KVM packages on KVM VSI
+  dnf:
+    name:
+      - '@virt'
+      - libguestfs-tools
+      - python3-libvirt
+      - libvirt-devel
+      - virt-top
+      - virt-manager
+      - python3-lxml
+      - epel-release
+      - virt-install
+    state: installed
+
+- name: Check if user kvmadmin exists and create if not
+  user:
+    name: kvmadmin
+    shell: /bin/bash
+    groups: libvirt
+    append: yes
+
+- name: Allow KVM tools to be run as kvmadmin user - Step 1
+  lineinfile:
+    path: /etc/libvirt/libvirtd.conf
+    line: 'unix_sock_group = "libvirt"'
+    state: present
+
+- name: Allow KVM tools to be run as kvmadmin user - Step 2
+  lineinfile:
+    path: /etc/libvirt/libvirtd.conf
+    line: 'unix_sock_rw_perms = "0770"'
+    state: present
+
+
+- name: enable and start libvirtd
+  systemd:
+    name: libvirtd
+    state: started
+    enabled: yes
+
+- name: Add ssh key to kvmadmin user
+  authorized_key:
+    user: kvmadmin
+    key: "{{ lookup('file', ssh_public_key_path) }}"
+    state: present
+
+
+- name: Add user kvmadmin to sudo
+  lineinfile:
+    path: /etc/sudoers.d/kvmadmin
+    line: 'kvmadmin ALL=(ALL) NOPASSWD: ALL'
+    state: present
+    mode: 0440
+    create: yes
+    validate: 'visudo -cf %s'
+
+- name: Check for DHCP in default KVM network
+  shell: grep '<dhcp>' /run/libvirt/network/default.xml
+  ignore_errors: yes
+  register: grep_network_result
+
+- name: Disable DHCP in default KVM network
+  block:
+    - name: Create dir for backup files
+      file:
+        path: /root/backup
+        state: directory
+        mode: 0700
+
+    - name: Copy template for default network
+      copy:
+        src: /usr/share/libvirt/networks/default.xml
+        dest: /root/backup/default.xml
+        force: yes
+        remote_src: yes
+
+    - name: Disable DHCP in default network config
+      xml:
+        path: /root/backup/default.xml
+        xpath: /network/ip/dhcp
+        state: absent
+
+    - name: Stop existing default network
+      virt_net:
+        command: destroy
+        name: default
+
+    - name: Undefine existing default network
+      virt_net:
+        command: undefine
+        name: default
+
+    - name: Redefine default network
+      shell: "virsh net-define --file /root/backup/default.xml"
+      register: net_define_output
+
+    - name: Start default network
+      virt_net:
+        command: start
+        name: default
+
+    - name: Ensure that the default network will be started at boot
+      virt_net:
+        autostart: yes
+        name: default
+
+  when: grep_network_result.stdout != ""
+
+- name: Check if storage pool has been setup
+  stat:
+    path: /run/libvirt/storage/default.xml
+  register: pool_config
+
+- name: Setup storage pool
+  block:
+
+    - name: Create dir for storage pool
+      file:
+        path: /mnt/kvmimgs/images
+        state: directory
+        mode: 0771
+
+    - name: Allow kvmadmin r/w access sorage pool dir
+      file:
+        path: /mnt/kvmimgs/images
+        state: directory
+        owner: kvmadmin
+        group: libvirt
+        mode: 0774
+
+    - name: Give qemu user access to images folder
+      shell: setfacl -m u:qemu:rx /mnt/kvmimgs/images
+
+    - name: Set storage pool name 
+      set_fact:
+        pool_name: default
+
+    - name: Create pool config from template
+      template:
+        src: pool.xml.j2
+        dest: /root/backup/pool.xml
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Define storage pool
+      shell: virsh pool-define /root/backup/pool.xml
+
+    - name: Start storage pool
+      shell: virsh pool-start default
+
+    - name: Autostart storage pool
+      shell: virsh pool-autostart default
+
+  when: pool_config.stat.exists is defined and not pool_config.stat.exists

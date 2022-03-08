@@ -1,0 +1,157 @@
+---
+- name: Check resource group exists
+  ibm_resource_group_info:
+    name: "{{ resource_group_name }}"
+  failed_when:
+     - resource_group_output.rc != 0
+     - '"ResourceGroupDoesnotExist" not in resource_group_output.stderr'
+  register: resource_group_output
+
+- name: Save existing resource group info as fact
+  set_fact:
+    cacheable: true
+    resource_group: "{{ resource_group_output.resource }}"
+  when: resource_group_output.resource.id is defined
+
+- name: Configure VPC
+  ibm_is_vpc:
+    name: "{{ name_prefix }}-vpc"
+    state: available
+    id: "{{ vpc.id | default(omit) }}"
+    region: "{{ region }}"
+    resource_group: "{{ resource_group.id }}"
+  register: vpc_create_output
+
+- name: Save VPC as fact
+  set_fact:
+    cacheable: True
+    vpc: "{{ vpc_create_output.resource }}"
+
+# - name: Get public gateways for region
+#   ibm_is_public_gateways_info:
+#     region: "{{ region }}"
+#   register: vpc_public_gateways_output
+#
+#
+# - name: Save public gateways for region  as fact
+#   set_fact:
+#     cacheable: true
+#     public_gateways: "{{ vpc_public_gateways_output.resource }}"
+#
+# - name: "Verify that public gateways returned"
+#   assert:
+#     that: vpc_create_output.resource  is defined
+#     fail_msg: "Error no  public gateways found for this VPC !"
+#     success_msg: "Found public gateways '{{ public_gateways }}'"
+
+- name: Configure VPC Subnet
+  ibm_is_subnet:
+    name: "{{ name_prefix }}-subnet"
+    state: available
+    id: "{{ subnet.id | default(omit) }}"
+    vpc: "{{ vpc.id }}"
+    total_ipv4_address_count: "{{ total_ipv4_address_count }}"
+    zone: "{{ zone }}"
+    region: "{{ region }}"
+    resource_group: "{{ resource_group.id }}"
+  register: subnet_create_output
+
+- name: Save VPC Subnet as fact
+  set_fact:
+    cacheable: True
+    subnet: "{{ subnet_create_output.resource }}"
+
+- name: Configure SSH Key
+  ibm_is_ssh_key:
+    name: "{{ name_prefix }}-ssh-key"
+    public_key: "{{ lookup('file', ssh_public_key_path) }}"
+    id: "{{ ssh_key.id | default(omit) }}"
+  register: ssh_key_create_output
+
+- name: Save SSH Key as fact
+  set_fact:
+    cacheable: True
+    ssh_key: "{{ ssh_key_create_output.resource }}"
+
+- name: Retrieve image list
+  ibm_is_images_info:
+  register: images_list
+
+- name: Set VM image name/id dictionary fact
+  set_fact:
+    cacheable: True
+    image_dict: "{{ images_list.resource.images |
+                    items2dict(key_name='name', value_name='id') }}"
+
+- name: Configure VSI
+  ibm_is_instance:
+    name: "{{ name_prefix }}-vsi"
+    state: available
+    id: "{{ vsi.id | default(omit) }}"
+    vpc: "{{ vpc.id }}"
+    profile: "{{ vsi_profile }}"
+    image: "{{ image_dict[vsi_image] }}"
+    keys:
+      - "{{ ssh_key.id }}"
+    primary_network_interface:
+      - subnet: "{{ subnet.id }}"
+        name: "{{ network_interface_name }}"
+    zone: "{{ zone }}"
+    region: "{{ region }}"
+    resource_group: "{{ resource_group.id }}"
+    auto_delete_volume: true
+  register: vsi_create_output
+
+- name: Save VSI as fact
+  set_fact:
+    cacheable: true
+    vsi: "{{ vsi_create_output.resource }}"
+
+- name: Configure Floating IP Address
+  ibm_is_floating_ip:
+    name: "{{ name_prefix }}-fip"
+    state: available
+    id: "{{ fip.id | default(omit) }}"
+    target: "{{ vsi.primary_network_interface[0]['id'] }}"
+    resource_group: "{{ resource_group.id }}"
+    region: "{{ region }}"
+  register: fip_create_output
+
+- name: Save Floating IP as fact
+  set_fact:
+    cacheable: True
+    fip: "{{ fip_create_output.resource }}"
+
+- name: Print Floating IP Address
+  debug:
+    msg: "IP Address: {{ fip.address }}"
+
+- name: Configure Security Group Rule to open SSH on the VSI
+  ibm_is_security_group_rule:
+    state: available
+    group: "{{ vpc.default_security_group }}"
+    direction: inbound
+    remote: 0.0.0.0/0
+    tcp:
+      - port_max: 22
+        port_min: 22
+
+- name: Configure Security Group Rule to open ICMP traffic to the VSI
+  ibm_is_security_group_rule:
+    state: available
+    group: "{{ vpc.default_security_group }}"
+    direction: inbound
+    remote: 0.0.0.0/0
+    icmp:
+      - type: null
+
+- name: Configure Security Group Rule to open VNC on the VSI
+  ibm_is_security_group_rule:
+    state: available
+    group: "{{ vpc.default_security_group }}"
+    direction: inbound
+    remote: 0.0.0.0/0
+    tcp:
+      - port_max: 5903
+        port_min: 5901
+  when: setup_vsi_gui

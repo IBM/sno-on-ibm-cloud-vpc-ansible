@@ -1,0 +1,117 @@
+---
+- name: Create SSH key pair for user kvmadmin
+  openssh_keypair:
+    owner: kvmadmin
+    mode: 0400
+    state: present
+    path: /home/kvmadmin/.ssh/id_rsa
+
+- name: Get existing VMs
+  community.libvirt.virt:
+    command: list_vms
+  register: existing_vms
+  changed_when: no
+
+- name: Create utility VM if it isnt there already
+  block:
+    - name: Download base image
+      get_url:
+        url: "{{ utility_image_url }}"
+        dest: "/tmp/{{ utility_image_name }}.gz"
+        checksum: "sha256:{{ utility_image_sha }}"
+
+    - name: Uncompress image
+      shell: test -f "{{ utility_image_name }}.gz" && gunzip "{{ utility_image_name }}.gz"
+      args:
+        chdir: /tmp
+        creates: /tmp/{{ utility_image_name }}
+
+    - name: Configure the image
+      shell: |
+        virt-customize -a /tmp/{{ utility_image_name }} \
+        --hostname utilities.{{ sno_domain_name }} \
+        --ssh-inject 'root:file:/home/kvmadmin/.ssh/id_rsa.pub' \
+        --uninstall cloud-init --selinux-relabel
+
+    - name: Copy base image to libvirt directory
+      copy:
+        dest: "{{ libvirt_pool_dir }}/{{ utility_image_name }}"
+        src: "/tmp/{{ utility_image_name }}"
+        force: no
+        remote_src: yes
+        mode: 0660
+
+    - name: Define utility vm
+      community.libvirt.virt:
+        command: define
+        xml: "{{ lookup('template', 'utility-vm-template.xml.j2') }}"
+
+
+    - name: Ensure VM is started
+      community.libvirt.virt:
+        name: "{{ utility_vm_name }}"
+        state: running
+      register: vm_start_results
+      until: "vm_start_results is success"
+      retries: 10
+      delay: 5
+
+    - name: Ensure temporary file is deleted
+      file:
+        path: "/tmp/{{ utility_image_name }}"
+        state: absent
+
+  when:  "utility_vm_name not in existing_vms.list_vms"
+
+- name: Check if VM configured already
+  stat:
+    path: /home/kvmadmin/setup/.setup_complete
+  register: setup_complete
+
+- name: Configure utility VM
+  block:
+    - name: Install ansible
+      dnf:
+        name: ansible
+        state: installed
+
+    - name: Create setup dir on KVM host
+      file:
+        path: /home/kvmadmin/setup
+        state: directory
+        owner: kvmadmin
+        group: kvmadmin
+        mode: 0750
+
+    - name: Copy setup files
+      copy:
+        src: "{{ role_path }}/uploads/"
+        dest: /home/kvmadmin/setup
+        owner: kvmadmin
+        group: kvmadmin
+
+    - name: Copy playbook
+      template:
+        src: remote_playbook.yml.j2
+        dest: /home/kvmadmin/setup/remote_playbook.yml
+        owner: kvmadmin
+        group: kvmadmin
+
+    - name: Run playlist targeting utility vm
+      shell: 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook  -i /home/kvmadmin/setup/hosts /home/kvmadmin/setup/remote_playbook.yml'
+      args:
+        chdir: /home/kvmadmin/setup
+      become: no
+      remote_user: kvmadmin
+      register: remote_playbook_out
+
+    - name: Show remote playbook output
+      debug:
+        var: remote_playbook_out.stdout_lines
+
+    - name: Create marker file
+      file:
+        path: /home/kvmadmin/setup/.setup_complete
+        state: touch
+
+  when: not setup_complete.stat.exists

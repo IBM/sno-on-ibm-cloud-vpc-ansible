@@ -1,0 +1,11 @@
+---
+- name: Install Xrdp
+  dnf:
+    name: xrdp
+    state: installed
+
+- name: Start Xrdp and enable on boot
+  systemd:
+    name: xrdp
+    state: started
+    enabled: yes

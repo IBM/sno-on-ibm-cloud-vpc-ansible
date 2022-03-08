@@ -1,0 +1,106 @@
+---
+- name: Get Floating IP info
+  ibm_is_floating_ip_info:
+    name: "{{ name_prefix }}-fip"
+    region: "{{ region }}"
+  register: fip_info
+  ignore_errors: yes
+
+- name: Save Floating IP info as fact
+  set_fact:
+    cacheable: true
+    fip: "{{ fip_info.resource }}"
+
+- name: Release Floating IP
+  ibm_is_floating_ip:
+    state: absent
+    id: "{{ fip.id }}"
+    region: "{{ region }}"
+    zone: "{{ zone }}"
+  when: fip.id is defined
+
+- name: Get VSI info
+  ibm_is_instance_info:
+    name: "{{ name_prefix }}-vsi"
+    region: "{{ region }}"
+  register: vsi_info
+  ignore_errors: yes
+  no_log: yes
+
+- name: Save VSI info as fact
+  set_fact:
+    cacheable: true
+    vsi: "{{ vsi_info.resource }}"
+
+- name: Remove VSI
+  ibm_is_instance:
+    state: absent
+    region: "{{ region }}"
+    auto_delete_volume: true
+    name: "{{ vsi.name }}"
+    id: "{{ vsi.id }}"
+    image: "{{ vsi.image }}"
+    vpc: "{{ vsi.vpc }}"
+    zone: "{{ vsi.zone }}"
+    profile: "{{ vsi.profile }}"
+    primary_network_interface:
+      - name: "{{ vsi.primary_network_interface[0].name }}"
+        subnet: "{{ vsi.primary_network_interface[0].subnet }}"
+    keys: "{{ vsi.keys }}"
+  when: vsi.id is defined
+
+- name: Get SSH Key Info
+  ibm_is_ssh_key_info:
+    name: "{{ name_prefix }}-ssh-key"
+    region: "{{ region }}"
+  register: ssh_key_info
+  ignore_errors: yes
+
+- name: Save SSH key info as fact
+  set_fact:
+    cacheable: true
+    ssh_key: "{{ ssh_key_info.resource }}"
+
+- name: Remove SSH Key
+  ibm_is_ssh_key:
+    state: absent
+    id: "{{ ssh_key.id }}"
+  when: ssh_key.id is defined
+
+
+- name: Get Subnet Info
+  ibm_is_subnet_info:
+    name: "{{ name_prefix }}-subnet"
+    region: "{{ region }}"
+  register: subnet_info
+  ignore_errors: yes
+
+- name: Save Subnet info as fact
+  set_fact:
+    cacheable: true
+    subnet: "{{ subnet_info.resource }}"
+
+- name: Remove VPC Subnet
+  ibm_is_subnet:
+    state: absent
+    id: "{{ subnet.id }}"
+  when: subnet.id is defined
+
+- name: Get VPC Info
+  ibm_is_vpc_info:
+    name: "{{ name_prefix }}-vpc"
+    region: "{{ region }}"
+  register: vpc_info
+  ignore_errors: yes
+
+- name: Save VPC info as fact
+  set_fact:
+    cacheable: true
+    vpc: "{{ vpc_info.resource }}"
+
+- name: Remove VPC
+  ibm_is_vpc:
+    state: absent
+    id: "{{ vpc.id }}"
+    region: "{{ region }}"
+  when: vpc.id is defined

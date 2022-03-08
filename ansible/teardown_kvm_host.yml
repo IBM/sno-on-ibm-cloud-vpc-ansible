@@ -1,0 +1,27 @@
+---
+- name: Destroy all Cloud resources previously created
+  hosts: localhost
+  gather_facts: true
+
+
+  pre_tasks:
+    - name: Verify that IBM Cloud API KEY is  defined
+      assert:
+        that: lookup('env','IC_API_KEY') is defined
+        fail_msg: "IC_API_KEY env variable is required for this playbook "
+        success_msg: "IBM Cloud API KEY is defined"
+
+    - name: "Verify that required variables are defined"
+      assert:
+        that:  "{{ item }} is defined"
+        fail_msg: "variable {{ item }} is required for this playbook "
+        success_msg: "Required variable {{ item }} is defined"
+      with_items:
+        - name_prefix
+        - region
+        - zone
+        - resource_group_name
+
+
+  roles:
+    - teardown_kvm_host

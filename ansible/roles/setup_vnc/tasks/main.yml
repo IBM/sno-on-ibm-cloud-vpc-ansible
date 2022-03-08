@@ -1,0 +1,59 @@
+---
+- name: Check if VNC setup already
+  stat:
+    path: /home/kvmadmin/.vnc/passwd
+  register: vnc_config
+
+- name: Setup GUI on VSI if configured
+  block:
+    - name: Install VNC server
+      dnf:
+        name:
+          - tigervnc-server
+        state: installed
+
+    - name: Add kvmadmin to the vncserver config
+      lineinfile:
+        path: /etc/tigervnc/vncserver.users
+        line: ':1=kvmadmin'
+        state: present
+
+    - name: Create VNC folder for ocpadmin user
+      file:
+        path: /home/kvmadmin/.vnc
+        state: directory
+        owner: kvmadmin
+        group: kvmadmin
+        mode: 0700
+
+    - name: Set GUI session type for kvmadmin
+      set_fact:
+        gui_session_type: gnome
+
+    - name: Send session type to VSI
+      template:
+        src: config.j2
+        dest: /home/kvmadmin/.vnc/config
+        owner: kvmadmin
+        group: kvmadmin
+        mode: '0600'
+
+    - name: Upload initial VNC password script
+      template:
+        src: setup-vnc.sh.j2
+        dest: /home/kvmadmin/setup-vnc.sh
+        owner: kvmadmin
+        group: kvmadmin
+        mode: '0700'
+
+    - name: Initial VNC password script
+      shell: su -l -c '/home/kvmadmin/setup-vnc.sh' kvmadmin
+
+    - name: Start VNC service
+      systemd:
+        state: restarted
+        daemon_reload: yes
+        name: 'vncserver@:1.service'
+        enabled: yes
+
+  when: vnc_config.stat.exists is defined and not vnc_config.stat.exists

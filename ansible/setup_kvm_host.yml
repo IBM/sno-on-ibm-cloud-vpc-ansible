@@ -1,0 +1,80 @@
+---
+- hosts: localhost
+  gather_facts: true
+  collections:
+    - ibm.cloudcollection
+    - community.general
+    - ansible.posix
+
+  tasks:
+    - name: Verify that IBM Cloud API KEY is  defined
+      assert:
+        that: lookup('env','IC_API_KEY') is defined
+        fail_msg: "IC_API_KEY env variable is required for this playbook "
+        success_msg: "IBM Cloud API KEY is defined"
+
+    - name: "Verify that required variables are defined"
+      assert:
+        that:  "{{ item }} is defined"
+        fail_msg: "variable {{ item }} is required for this playbook "
+        success_msg: "Required variable {{ item }} is defined"
+      with_items:
+        - name_prefix
+        - region
+        - ssh_public_key_path
+
+    - name: Get VSIs floating IP if we don't have it yet
+      block:
+        - name: Get KVM VSIs floating IP
+          ibm_is_floating_ip_info:
+            name: "{{ name_prefix }}-fip"
+            region: "{{ region }}"
+          register: fip_info_output
+
+        - name: Verify that floating IP's ipv4 address is defined
+          assert:
+            that: fip.address is defined
+            fail_msg: "IP address of KVM VSI is required for this playbook "
+            success_msg: "IP address of KVM VSI is {{ fip.address }} "
+
+        - name: Save floating IP as fact
+          set_fact:
+            cacheable: true
+            fip: "{{ fip_info_output.resource }}"
+
+      when: fip is not defined or fip.address is not defined
+
+  post_tasks:
+    - name: Add VSI to Ansible inventory
+      add_host:
+        name: "{{ fip.address }}"
+        ansible_user: root
+        groups: kvm_vsi
+        ansible_ssh_extra_args: -o StrictHostKeyChecking=no
+      when: fip.address not in groups['kvm_vsi'] | default([])
+
+- hosts: kvm_vsi
+  gather_facts: false
+  become: yes
+
+  roles:
+    - setup_kvm_host
+
+  post_tasks:
+
+    - name: Get Floating IP info from previous play
+      set_fact:
+        fip: "{{ hostvars['localhost']['fip']}}"
+
+    - name: Show success message
+      vars:
+         fip:
+         msg: |
+                KVM has been succesfully setup on your VSI !
+                You can now run kvm commands by logging in via SSH:
+                    ssh snoadmin@{{ fip.address }}
+                For root access you can prefix each command with sudo as shown below:
+                    sudo dnf install -y my-favorite-utility
+
+      debug:
+        msg: "{{ msg.split('\n') }}"

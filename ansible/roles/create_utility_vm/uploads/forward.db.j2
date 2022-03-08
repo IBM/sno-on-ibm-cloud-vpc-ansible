@@ -1,0 +1,20 @@
+; Authoritative data for edgenius-ocp-poc.cloud
+;
+$TTL 86400
+@ IN SOA ns1.{{ cluster_domain }}.  root.ns1.{{ cluster_domain }}. (
+             2019070700  ; serial
+             3H          ; refresh (3 hours)
+             30M         ; retry (30 minutes)
+             2W          ; expiry (2 weeks)
+             1W          ; minimum (1 week
+)
+;
+;
+@ IN NS ns1.{{ cluster_domain }}.
+
+ns1              A       192.168.0.2
+
+; OpenShift cluster entries
+sno.{{ cluster_name }}         A        192.168.0.3
+api.{{ cluster_name }}         A        192.168.0.3
+*.apps.{{ cluster_name }}      A        192.168.0.3

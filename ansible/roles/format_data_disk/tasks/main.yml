@@ -1,0 +1,72 @@
+---
+- name: check if extra drive already setup
+  stat:
+    path: /mnt/kvmimgs/.marker_file
+  register: marker_file_status
+
+- name: Format disk and create filesystem
+  block:
+    - name: Create partition on extra disk
+      parted:
+        device: /dev/vdb
+        number: 1
+        state: present
+        flags: [ lvm ]
+
+    - name: Create volume group on new partition
+      lvg:
+        vg: vg_kvm
+        pvs: /dev/vdb1
+        state: present
+
+    - name: Create a logical volume the size of all remaining space in the volume group
+      lvol:
+        vg: vg_kvm
+        lv: lv_kvm
+        size: 100%FREE
+        state: present
+
+    - name: Creates mount directory for extra drive
+      file:
+        path: /mnt/kvmimgs
+        state: directory
+        mode: 0777
+
+    - name: Create an xfs filesystem on new lv
+      community.general.filesystem:
+        fstype: xfs
+        dev: "/dev/vg_kvm/lv_kvm"
+        state: present
+
+    # - name: Get UUID of new filesystem
+    #   shell: blkid -s UUID -o value /dev/mapper/vg_kvm-lv_kvm
+    #   register: blkid_out
+    #
+    # - name: Add mount to /etc/fstab
+    #   lineinfile:
+    #     path: /etc/fstab
+    #     regexp: "^UUID={{ blkid_out.stdout }}"
+    #     line: "UUID={{ blkid_out.stdout }} \t /kvmimgs \t xfs \t defaults \t 0 0"
+    #     state: present
+    #
+    # - name: Mount new filesystem
+    #   shell: mount -a
+
+    - name: Mount new filesystem
+      mount:
+        path: /mnt/kvmimgs
+        src: /dev/mapper/vg_kvm-lv_kvm
+        fstype: xfs
+        state: mounted
+
+    - name: Create marker file
+      lineinfile:
+        path: /mnt/kvmimgs/.marker_file
+        state: present
+        owner: root
+        group: sys
+        mode: 0644
+        line: Extra disk sucessfully mounted
+        create: yes
+
+  when: marker_file_status.stat.exists is defined and not marker_file_status.stat.exists
