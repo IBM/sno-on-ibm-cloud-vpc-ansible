@@ -27,23 +27,6 @@
     cacheable: True
     vpc: "{{ vpc_create_output.resource }}"
 
-# - name: Get public gateways for region
-#   ibm_is_public_gateways_info:
-#     region: "{{ region }}"
-#   register: vpc_public_gateways_output
-#
-#
-# - name: Save public gateways for region  as fact
-#   set_fact:
-#     cacheable: true
-#     public_gateways: "{{ vpc_public_gateways_output.resource }}"
-#
-# - name: "Verify that public gateways returned"
-#   assert:
-#     that: vpc_create_output.resource  is defined
-#     fail_msg: "Error no  public gateways found for this VPC !"
-#     success_msg: "Found public gateways '{{ public_gateways }}'"
-
 - name: Configure VPC Subnet
   ibm_is_subnet:
     name: "{{ name_prefix }}-subnet"
@@ -66,6 +49,8 @@
     name: "{{ name_prefix }}-ssh-key"
     public_key: "{{ lookup('file', ssh_public_key_path) }}"
     id: "{{ ssh_key.id | default(omit) }}"
+    region: "{{ region }}"
+    resource_group: "{{ resource_group.id }}"
   register: ssh_key_create_output
 
 - name: Save SSH Key as fact
@@ -75,6 +60,7 @@
 
 - name: Retrieve image list
   ibm_is_images_info:
+    region: "{{ region }}"
   register: images_list
 
 - name: Set VM image name/id dictionary fact
@@ -135,6 +121,7 @@
     tcp:
       - port_max: 22
         port_min: 22
+    region: "{{ region }}"
 
 - name: Configure Security Group Rule to open ICMP traffic to the VSI
   ibm_is_security_group_rule:
@@ -144,6 +131,7 @@
     remote: 0.0.0.0/0
     icmp:
       - type: null
+    region: "{{ region }}"
 
 - name: Configure Security Group Rule to open VNC on the VSI
   ibm_is_security_group_rule:
@@ -154,4 +142,5 @@
     tcp:
       - port_max: 5903
         port_min: 5901
+    region: "{{ region }}"
   when: setup_vsi_gui
