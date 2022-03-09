@@ -10,7 +10,7 @@
   tasks:
     - name: Verify that IBM Cloud API KEY is  defined
       assert:
-        that: lookup('env','IC_API_KEY') is defined
+        that: lookup('env','IC_API_KEY') != ""
         fail_msg: "IC_API_KEY env variable is required for this playbook "
         success_msg: "IBM Cloud API KEY is defined"
 
