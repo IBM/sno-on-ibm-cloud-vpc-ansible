@@ -1,0 +1,88 @@
+---
+- name: Get VSIs IP and add to inventory if not already there
+  hosts: localhost
+  gather_facts: true
+  collections:
+    - ibm.cloudcollection
+    - community.general
+    - ansible.posix
+
+  tasks:
+    - name: Verify that IBM Cloud API KEY is  defined
+      assert:
+        that: lookup('env','IC_API_KEY') is defined
+        fail_msg: "IC_API_KEY env variable is required for this playbook "
+        success_msg: "IBM Cloud API KEY is defined"
+
+    - name: "Verify that required variables are defined"
+      assert:
+        that:  "{{ item }} is defined"
+        fail_msg: "variable {{ item }} is required for this playbook "
+        success_msg: "Required variable {{ item }} is defined"
+      with_items:
+        - name_prefix
+        - region
+        - ssh_public_key_path
+
+    - name: Get VSIs floating IP if we don't have it yet
+      block:
+        - name: Get KVM VSIs floating IP
+          ibm_is_floating_ip_info:
+            name: "{{ name_prefix }}-fip"
+            region: "{{ region }}"
+          register: fip_info_output
+          
+        - name: Save floating IP as fact
+          set_fact:
+            cacheable: true
+            fip: "{{ fip_info_output.resource }}"
+
+        - name: Verify that floating IP's ipv4 address is defined
+          assert:
+            that: fip.address is defined
+            fail_msg: "IP address of KVM VSI is required for this playbook "
+            success_msg: "IP address of KVM VSI is {{ fip.address }} "
+
+      when: fip is not defined or fip.address is not defined
+
+  post_tasks:
+    - name: Add VSI to Ansible inventory
+      add_host:
+        name: "{{ fip.address }}"
+        ansible_user: root
+        groups: kvm_vsi
+        ansible_ssh_extra_args: -o StrictHostKeyChecking=no
+      when: fip.address not in groups['kvm_vsi'] | default([])
+
+    # - name: Pass IBM Cloud API key to next play
+    #   set_fact:
+    #     api_key: "{{ lookup('env','IC_API_KEY') }}"
+    #   no_log: yes
+
+- hosts: kvm_vsi
+  gather_facts: false
+  become: yes
+
+  pre_tasks:
+    - name: Get Floating IP info from previous play
+      set_fact:
+        fip: "{{ hostvars['localhost']['fip'] }}"
+
+  roles:
+    - name: install_gui
+    - name: reboot_vsi
+      when: install_gui_out is defined and install_gui_out.changed
+
+  post_tasks:
+
+    - name: Show access info
+      vars:
+         msg: |
+                Your VSIs GUI enviroment has been installed successfully !
+                Setup VNC or RDP to start accessing it
+                You can still access your VSI by logging in via SSH:
+                      ssh kvmadmin@{{ fip.address }}
+                For root access you can prefix each command with sudo as shown below:
+                      sudo dnf install -y my-favorite-utility
+      debug:
+        msg: "{{ msg.split('\n') }}"

@@ -65,6 +65,7 @@
   ibm_is_ssh_key:
     state: absent
     id: "{{ ssh_key.id }}"
+    region: "{{ region }}"
   when: ssh_key.id is defined
 
 
@@ -84,6 +85,7 @@
   ibm_is_subnet:
     state: absent
     id: "{{ subnet.id }}"
+    region: "{{ region }}"
   when: subnet.id is defined
 
 - name: Get VPC Info
