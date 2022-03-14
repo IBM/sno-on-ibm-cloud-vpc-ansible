@@ -34,7 +34,7 @@
 
 - name: Escaped pull secret
   set_fact:
-    escaped_pull_secret: "{{ lookup('file','auth/pull_secret.json') | replace('\"', '\\\"') }}"
+    escaped_pull_secret: "{{ lookup('file','auth/pull-secret.txt') | replace('\"', '\\\"') }}"
 
 # - name: Register cluster data
 #   template:
@@ -83,7 +83,7 @@
 
 - name: Parse response
   set_fact:
-    cluster_id: register_cluster_response.json.id
+    cluster_id: "{{ register_cluster_response.json.id }}"
   when: "sno_cluster_name not in cluster_names"
 
 - name: Cluster Id
@@ -113,22 +113,35 @@
   uri:
     url: https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs
     method: POST
+    status_code: [201]
     body_format: json
     headers:
       Authorization:  "{{ 'Bearer ' + refresh_token }}"
     body: |
         {
-          "name": "{{ infraenv_name }}",
+          "name": "{{ sno_infraenv_name }}",
           "cluster_id": "{{ cluster_id }}",
           "openshift_version": "4.10",
           "pull_secret": "{{ escaped_pull_secret  }}"
         }
+  register: register_infraenv_response
+  when: "sno_infraenv_name not in infraenv_names"
+
+- name: Parse response
+  set_fact:
+    infraenv_id: "{{ register_infraenv_response.json.id }}"
+  when: "sno_infraenv_name not in infraenv_names"
+
+- name: Infraenv Id
+  debug:
+    var: infraenv_id
   when: "sno_infraenv_name not in infraenv_names"
 
 - name: Patch cluster
   uri:
     url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ cluster_id }}
-    method: POST
+    method: PATCH
+    status_code: [201]
     body_format: json
     headers:
       Authorization:  "{{ 'Bearer ' + refresh_token }}"
@@ -140,17 +153,18 @@
       ssh_authorized_key: "{{ lookup('file', ssh_public_key_path) }}"
     return_content: yes
   register: patch_cluster_response
-  when: "cluster_name not in cluster_names"
+  when: "sno_cluster_name not in cluster_names"
 
 - name: Entire response for debugging
   debug:
     var: patch_cluster_response.json
-  when: "cluster_name not in cluster_names"
+  when: "sno_cluster_name not in cluster_names"
 
 - name: Patch InfraEnv
   uri:
     url: "https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}"
     method: PATCH
+    status_code: [201]
     body_format: json
     headers:
       Authorization:  "{{ 'Bearer ' + refresh_token }}"
@@ -159,6 +173,7 @@
       https_proxy: ""
       no_proxy: ""
       pull_secret: ""
+      image_type: "full-iso"
       ssh_authorized_key: "{{ lookup('file', ssh_public_key_path) }}"
     return_content: yes
   register: patch_infraenv_response
