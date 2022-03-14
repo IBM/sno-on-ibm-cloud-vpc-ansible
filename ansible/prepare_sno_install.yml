@@ -4,10 +4,10 @@
   collections:
     - ibm.cloudcollection
 
-  tasks:
+  pre_tasks:
     - name: Verify that IBM Cloud API KEY is  defined
       assert:
-        that: lookup('env','IC_API_KEY') is defined
+        that: lookup('env','IC_API_KEY') != ""
         fail_msg: "IC_API_KEY env variable is required for this playbook "
         success_msg: "IBM Cloud API KEY is defined"
 
@@ -20,6 +20,31 @@
         - name_prefix
         - region
         - ssh_public_key_path
+        - assisted_service_api
+        - sno_infraenv_name
+
+    - name: Look for token file
+      stat:
+        path: "auth/token.txt"
+      register: token_file
+
+    - name: Verify that token file exists
+      assert:
+        that: token_file.stat.exists
+        fail_msg: "Token file auth/token.txt is required for this playbook"
+        success_msg: "Required token file exists"
+
+    - name: Look for pull secret file
+      stat:
+        path: "auth/pull_secret.json"
+      register: pull_secret_file
+
+    - name: Verify that pull secret  file exists
+      assert:
+        that: pull_secret_file.stat.exists
+        fail_msg: "Pull secret  file auth/pull_secret.json is required for this playbook"
+        success_msg: "Required pull secret file exists"
+
 
     - name: Get VSIs floating IP if we don't have it yet
       block:
@@ -42,6 +67,9 @@
 
       when: fip is not defined or fip.address is not defined
 
+  roles:
+    - prepare_sno_install
+
   post_tasks:
     - name: Add VSI to Ansible inventory
       add_host:
@@ -50,23 +78,3 @@
         groups: kvm_vsi
         ansible_ssh_extra_args: -o StrictHostKeyChecking=no
       when: fip.address not in groups['kvm_vsi'] | default([])
-
-- hosts: kvm_vsi
-  gather_facts: false
-  become: yes
-
-  roles:
-    - role: create_utility_vm
-
-  post_tasks:
-
-    - name: Show VM info
-      vars:
-         msg: |
-                The VM for installing OpenShift SNO have been created !
-
-                You can access the SNO utility VM from the KVM VSI with:
-                  ssh root@192.168.122.2
-
-      debug:
-        msg: "{{ msg.split('\n') }}"

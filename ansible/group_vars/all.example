@@ -1,14 +1,14 @@
 ---
-name_prefix: djc-sno-ibmcloud-quickstart
+name_prefix: "*****change me*****"
 vsi_profile: bx2d-16x64
 vsi_image: 'ibm-rocky-linux-8-5-minimal-amd64-2'
-ssh_public_key_path: '/Users/carew@us.ibm.com/.ssh/id_rsa.pub'
-ssh_private_key_path: '/Users/carew@us.ibm.com/.ssh/id_rsa'
+ssh_public_key_path: "*****change me*****"
+ssh_private_key_path: "*****change me*****"
 ansible_ssh_private_key_file: "{{ ssh_private_key_path }}"
 total_ipv4_address_count: 256
 zone: us-east-3
 region: us-east
-resource_group_name: "djc-rg"
+resource_group_name: ""*****change me*****""
 setup_vsi_gui: true
 disable_se_linux_flag: true
 utility_image_name: sno-kvm-utilities-fedora34.x86_64.qcow2
@@ -19,13 +19,10 @@ utility_vm_name: sno_utility_vm
 utility_vm_vcpus: 2
 utility_vm_ram_mb: 4096
 utility_vm_net: default
-sno_domain_name: ibm-build-team.cloud
-sno_cluster_name: sno49kvm
+sno_domain_name: "*****change me*****"
+sno_cluster_name: "*****change me*****"
 sno_vm_name: sno_vm
 sno_vm_vcpus: 8
 sno_vm_ram_mb: 32768
 sno_vm_disk_size: 120Gi
 sno_mac_address: 54:50:90:0e:45:12
-
-assisted_service_api: api.openshift.com
-sno_infraenv_name: "{{ sno_cluster_name }}-infraenv"

@@ -1,0 +1,184 @@
+---
+- name: Assisted installer token
+  uri:
+    url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+    method: POST
+    status_code: [200]
+    body_format: form-urlencoded
+    body:
+      grant_type: refresh_token
+      client_id: cloud-services
+      refresh_token: "{{ lookup('file','auth/token.txt') }}"
+    return_content: yes
+
+  register: refresh_token_response
+
+- name: Parse response
+  set_fact:
+    refresh_token: "{{ refresh_token_response.json.access_token }}"
+
+- name: Get Feature Support (for debugging)
+  uri:
+    url: "https://{{ assisted_service_api }}/api/assisted-install/v2/feature-support-levels"
+    method: GET
+    status_code: [200]
+    headers:
+      Authorization:  "{{ 'Bearer ' + refresh_token }}"
+    return_content: yes
+  register: get_feature_response
+
+- name: Entire response for debugging
+  debug:
+    var: get_feature_response.json
+
+
+- name: Escaped pull secret
+  set_fact:
+    escaped_pull_secret: "{{ lookup('file','auth/pull_secret.json') | replace('\"', '\\\"') }}"
+
+# - name: Register cluster data
+#   template:
+#     src: "data/register_cluster.json.j2"
+#     dest: "data/register_cluster.json"
+
+- name: Get clusters
+  uri:
+    url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters
+    method: GET
+    status_code: [200]
+    headers:
+      Authorization: "{{ 'Bearer ' + refresh_token }}"
+    return_content: yes
+  register: get_clusters_response
+
+- name: Get cluster names
+  set_fact:
+    cluster_names: "{{ get_clusters_response.json | map(attribute='name') | list }}"
+
+- name: Cluster names  for debugging
+  debug:
+    var: cluster_names
+
+- name: Register a cluster
+  uri:
+    url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters
+    method: POST
+    body_format: json
+    status_code: [201]
+    headers:
+      Content-Type: "application/json"
+      Authorization: "{{ 'Bearer ' + refresh_token }}"
+    body: |
+      {
+        "name": "{{ sno_cluster_name }}",
+        "high_availability_mode": "None",
+        "openshift_version": "4.10",
+        "pull_secret": "{{ escaped_pull_secret }}",
+        "base_dns_domain": "{{ sno_domain_name }}"
+      }
+
+    return_content: yes
+  register: register_cluster_response
+  when: "cluster_name not in cluster_names"
+
+- name: Parse response
+  set_fact:
+    cluster_id: register_cluster_response.json.id
+  when: "cluster_name not in cluster_names"
+
+- name: Cluster Id
+  debug:
+    var: cluster_id
+  when: "cluster_name not in cluster_names"
+
+- name: Get infra-envs
+  uri:
+    url: https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs
+    method: GET
+    status_code: [200]
+    headers:
+      Authorization: "{{ 'Bearer ' + refresh_token }}"
+    return_content: yes
+  register: get_infraenvs_response
+
+- name: Get infrenv names
+  set_fact:
+    infraenv_names: "{{ get_infraenvs_response.json | map(attribute='name') | list }}"
+
+- name: Infrenvs names for debugging
+  debug:
+    var: infraenv_names
+
+- name: Register an infraenv
+  uri:
+    url: https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs
+    method: POST
+    body_format: json
+    headers:
+      Authorization:  "{{ 'Bearer ' + refresh_token }}"
+    body: |
+        {
+          "name": "{{ infraenv_name }}",
+          "cluster_id": "{{ cluster_id }}",
+          "openshift_version": "4.10",
+          "pull_secret": "{{ escaped_pull_secret  }}"
+        }
+  when: "infraenv_name not in infraenv_names"
+
+- name: Patch cluster
+  uri:
+    url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ cluster_id }}
+    method: POST
+    body_format: json
+    headers:
+      Authorization:  "{{ 'Bearer ' + refresh_token }}"
+    body:
+      http_proxy: ""
+      https_proxy: ""
+      no_proxy: ""
+      pull_secret: ""
+      ssh_authorized_key: "{{ lookup('file', ssh_public_key_path) }}"
+    return_content: yes
+  register: patch_cluster_response
+  when: "cluster_name not in cluster_names"
+
+- name: Entire response for debugging
+  debug:
+    var: patch_cluster_response.json
+  when: "cluster_name not in cluster_names"
+
+- name: Patch InfraEnv
+  uri:
+    url: "https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}"
+    method: PATCH
+    body_format: json
+    headers:
+      Authorization:  "{{ 'Bearer ' + refresh_token }}"
+    body:
+      http_proxy: ""
+      https_proxy: ""
+      no_proxy: ""
+      pull_secret: ""
+      ssh_authorized_key: "{{ lookup('file', ssh_public_key_path) }}"
+    return_content: yes
+  register: patch_infraenv_response
+  when: "infraenv_name not in infraenv_names"
+
+- name: Get InfraEnv Image Download URL
+  uri:
+    url: "https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}"
+    method: GET
+    headers:
+      Authorization:  "{{ 'Bearer ' + refresh_token }}"
+    return_content: yes
+  register: image_url_response
+  when: "infraenv_name not in infraenv_names"
+
+- name: Save download image URL as fact
+  set_fact:
+    download_url: image_url_response.json.download_url
+  when: "infraenv_name not in infraenv_names"
+
+- name: Entire response for debugging
+  debug:
+    var: image_url_response.json
