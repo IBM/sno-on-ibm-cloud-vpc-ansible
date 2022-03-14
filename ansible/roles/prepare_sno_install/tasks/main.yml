@@ -79,17 +79,17 @@
 
     return_content: yes
   register: register_cluster_response
-  when: "cluster_name not in cluster_names"
+  when: "sno_cluster_name not in cluster_names"
 
 - name: Parse response
   set_fact:
     cluster_id: register_cluster_response.json.id
-  when: "cluster_name not in cluster_names"
+  when: "sno_cluster_name not in cluster_names"
 
 - name: Cluster Id
   debug:
     var: cluster_id
-  when: "cluster_name not in cluster_names"
+  when: "sno_cluster_name not in cluster_names"
 
 - name: Get infra-envs
   uri:
@@ -123,7 +123,7 @@
           "openshift_version": "4.10",
           "pull_secret": "{{ escaped_pull_secret  }}"
         }
-  when: "infraenv_name not in infraenv_names"
+  when: "sno_infraenv_name not in infraenv_names"
 
 - name: Patch cluster
   uri:
@@ -162,7 +162,7 @@
       ssh_authorized_key: "{{ lookup('file', ssh_public_key_path) }}"
     return_content: yes
   register: patch_infraenv_response
-  when: "infraenv_name not in infraenv_names"
+  when: "sno_infraenv_name not in infraenv_names"
 
 - name: Get InfraEnv Image Download URL
   uri:
@@ -172,12 +172,12 @@
       Authorization:  "{{ 'Bearer ' + refresh_token }}"
     return_content: yes
   register: image_url_response
-  when: "infraenv_name not in infraenv_names"
+  when: "sno_infraenv_name not in infraenv_names"
 
 - name: Save download image URL as fact
   set_fact:
     download_url: image_url_response.json.download_url
-  when: "infraenv_name not in infraenv_names"
+  when: "sno_infraenv_name not in infraenv_names"
 
 - name: Entire response for debugging
   debug:
