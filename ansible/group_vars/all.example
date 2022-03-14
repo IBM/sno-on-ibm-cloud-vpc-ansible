@@ -26,3 +26,6 @@ sno_vm_vcpus: 8
 sno_vm_ram_mb: 32768
 sno_vm_disk_size: 120Gi
 sno_mac_address: 54:50:90:0e:45:12
+
+assisted_service_api: api.openshift.com
+sno_infraenv_name: "{{ sno_cluster_name }}-infraenv"
