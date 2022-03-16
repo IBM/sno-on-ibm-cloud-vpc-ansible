@@ -1,11 +1,4 @@
 ---
-- name: Create SSH key pair for user kvmadmin
-  openssh_keypair:
-    owner: kvmadmin
-    mode: 0400
-    state: present
-    path: /home/kvmadmin/.ssh/id_rsa
-
 - name: Get existing VMs
   community.libvirt.virt:
     command: list_vms

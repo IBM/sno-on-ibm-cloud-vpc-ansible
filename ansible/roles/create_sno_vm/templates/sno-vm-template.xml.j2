@@ -1,33 +1,54 @@
 <domain type='kvm'>
-  <name>sn_vm</name>
-
-
-  <memory unit='MiB'>32768</memory>
-  <vcpu placement='static'>8</vcpu>
+  <name>{{ sno_vm_name }}</name>
+  <metadata>
+    <libosinfo:libosinfo xmlns:libosinfo="http://libosinfo.org/xmlns/libvirt/domain/1.0">
+      <libosinfo:os id="http://redhat.com/rhel/8-unknown"/>
+    </libosinfo:libosinfo>
+  </metadata>
+  <memory unit='MiB'>{{ sno_vm_ram_mb }}</memory>
+  <vcpu placement='static'>{{ sno_vm_vcpus }}</vcpu>
   <resource>
     <partition>/machine</partition>
   </resource>
   <os>
     <type arch='x86_64' machine='pc-q35-rhel8.2.0'>hvm</type>
-    <boot dev='cdrom'/>
-    <boot dev='hd'/>
   </os>
-  <cpu mode='host-model' match='exact' check='none' />
+  <features>
+    <acpi/>
+    <apic/>
+    <vmport state='off'/>
+  </features>
 
+
+  <cpu mode='host-model' match='exact' check='none' />
+  
+  <clock offset='utc'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <timer name='hpet' present='no'/>
+  </clock>
+  <pm>
+    <suspend-to-mem enabled='no'/>
+    <suspend-to-disk enabled='no'/>
+  </pm>
   <devices>
     <emulator>/usr/libexec/qemu-kvm</emulator>
     <disk type='file' device='disk'>
       <driver name='qemu' type='qcow2'/>
-      <source file='/mnt/kvmimgs/images/sn_vm.qcow2'/>
+      <source file='{{ libvirt_pool_dir }}/{{ sno_vm_name }}.qcow2' index='2'/>
+      <backingStore/>
       <target dev='vda' bus='virtio'/>
+      <boot order='1'/>
+      <alias name='virtio-disk0'/>
       <address type='pci' domain='0x0000' bus='0x04' slot='0x00' function='0x0'/>
     </disk>
     <disk type='file' device='cdrom'>
       <driver name='qemu' type='raw'/>
-      <source file='/home/snoadmin/discovery_image_testkvm.iso' />
+      <source file='/tmp/discovery_{{ sno_cluster_name }}.iso' index='1'/>
       <backingStore/>
       <target dev='sda' bus='sata'/>
       <readonly/>
+      <boot order='2'/>
       <alias name='sata0-0-0'/>
       <address type='drive' controller='0' bus='0' target='0' unit='0'/>
     </disk>
@@ -41,10 +62,6 @@
     </controller>
     <controller type='pci' index='0' model='pcie-root'>
       <alias name='pcie.0'/>
-    </controller>
-    <controller type='virtio-serial' index='0'>
-      <alias name='virtio-serial0'/>
-      <address type='pci' domain='0x0000' bus='0x03' slot='0x00' function='0x0'/>
     </controller>
     <controller type='pci' index='1' model='pcie-root-port'>
       <model name='pcie-root-port'/>
@@ -88,26 +105,30 @@
       <alias name='pci.7'/>
       <address type='pci' domain='0x0000' bus='0x00' slot='0x02' function='0x6'/>
     </controller>
+    <controller type='virtio-serial' index='0'>
+      <alias name='virtio-serial0'/>
+      <address type='pci' domain='0x0000' bus='0x03' slot='0x00' function='0x0'/>
+    </controller>
     <interface type='network'>
-      <mac address='52:54:00:bc:ed:51'/>
+      <mac address='{{ sno_mac_address }}'/>
       <source network='default' />
       <model type='virtio'/>
       <address type='pci' domain='0x0000' bus='0x01' slot='0x00' function='0x0'/>
     </interface>
     <serial type='pty'>
-      <source path='/dev/pts/2'/>
+      <source path='/dev/pts/3'/>
       <target type='isa-serial' port='0'>
         <model name='isa-serial'/>
       </target>
       <alias name='serial0'/>
     </serial>
-    <console type='pty' tty='/dev/pts/2'>
-      <source path='/dev/pts/2'/>
+    <console type='pty' tty='/dev/pts/3'>
+      <source path='/dev/pts/3'/>
       <target type='serial' port='0'/>
       <alias name='serial0'/>
     </console>
     <channel type='unix'>
-      <target type='virtio' name='org.qemu.guest_agent.0' />
+      <target type='virtio' name='org.qemu.guest_agent.0' state='connected'/>
       <address type='virtio-serial' controller='0' bus='0' port='1'/>
     </channel>
     <channel type='spicevmc'>
@@ -156,4 +177,6 @@
       <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
     </rng>
   </devices>
+
 </domain>
+

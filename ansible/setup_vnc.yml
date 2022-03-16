@@ -31,17 +31,18 @@
             region: "{{ region }}"
           register: fip_info_output
 
+        - name: Save floating IP as fact
+          set_fact:
+            cacheable: true
+            fip: "{{ fip_info_output.resource }}"
+
         - name: Verify that floating IP's ipv4 address is defined
           assert:
             that: fip.address is defined
             fail_msg: "IP address of KVM VSI is required for this playbook "
             success_msg: "IP address of KVM VSI is {{ fip.address }} "
 
-        - name: Save floating IP as fact
-          set_fact:
-            cacheable: true
-            fip: "{{ fip_info_output.resource }}"
-
+ 
       when: fip is not defined or fip.address is not defined
 
   post_tasks:

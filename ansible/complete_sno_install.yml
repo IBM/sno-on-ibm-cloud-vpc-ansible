@@ -1,0 +1,35 @@
+---
+- hosts: localhost
+  gather_facts: true
+  collections:
+    - ibm.cloudcollection
+
+  pre_tasks:
+    - name: "Verify that required variables are defined"
+      assert:
+        that:  "{{ item }} is defined"
+        fail_msg: "variable {{ item }} is required for this playbook "
+        success_msg: "Required variable {{ item }} is defined"
+      with_items:
+        - assisted_service_api
+        - sno_cluster_name
+
+    - name: Look for token file
+      stat:
+        path: "auth/token.txt"
+      register: token_file
+
+    - name: Verify that token file exists
+      assert:
+        that: token_file.stat.exists
+        fail_msg: "Token file auth/token.txt is required for this playbook"
+        success_msg: "Required token file exists"
+
+  roles:
+    - complete_sno_install
+
+  post_tasks:
+
+    - name: Success message
+      debug:
+         msg: "Your SNO install completed  successfully !"

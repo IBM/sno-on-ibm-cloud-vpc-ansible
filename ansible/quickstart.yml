@@ -23,9 +23,11 @@
 - name: Create Utility SNO VM
   import_playbook: create_utility_vm.yml
 
-# TODO Add playbooks
-# -  kickoff_sno_install.yml
-# -  monitor_sno_install.yml
+- name: Prepare SNO install
+  import_playbook: prepare_sno_install.yml
+
+- name: Complete SNO install
+  import_playbook: complete_sno_install.yml
 
 - name: End to end install of SNO on IBM Cloud VPC complete
   hosts: localhost

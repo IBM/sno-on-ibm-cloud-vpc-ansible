@@ -36,13 +36,13 @@
 
     - name: Look for pull secret file
       stat:
-        path: "auth/pull_secret.json"
+        path: "auth/pull-secret.txt"
       register: pull_secret_file
 
     - name: Verify that pull secret  file exists
       assert:
         that: pull_secret_file.stat.exists
-        fail_msg: "Pull secret  file auth/pull_secret.json is required for this playbook"
+        fail_msg: "Pull secret  file auth/pull-secret.txt is required for this playbook"
         success_msg: "Required pull secret file exists"
 
 
@@ -78,3 +78,22 @@
         groups: kvm_vsi
         ansible_ssh_extra_args: -o StrictHostKeyChecking=no
       when: fip.address not in groups['kvm_vsi'] | default([])
+
+- hosts: kvm_vsi
+  gather_facts: false
+  become: yes
+
+  pre_tasks:
+    - name: Get ISO download URL from previous play
+      set_fact:
+        download_url: "{{ hostvars['localhost']['download_url'] }}"
+
+  roles:
+    - role: create_sno_vm
+    - role: start_sno_install
+
+  post_tasks:
+
+    - name: Success message
+      debug:
+         msg: "Your SNO install started successfully !"

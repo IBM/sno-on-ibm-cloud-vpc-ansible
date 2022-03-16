@@ -21,7 +21,9 @@ utility_vm_ram_mb: 4096
 utility_vm_net: default
 sno_domain_name: "*****change me*****"
 sno_cluster_name: "*****change me*****"
-sno_vm_name: sno_vm
+sno_vm_name: "{{ sno_cluster_name }}-vm"
+sno_machine_cidr: "192.168.122.0/24"
+sno_ip_address: "192.168.122.3"
 sno_vm_vcpus: 8
 sno_vm_ram_mb: 32768
 sno_vm_disk_size: 120Gi

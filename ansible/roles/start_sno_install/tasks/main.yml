@@ -1,0 +1,62 @@
+---
+- name: Get  cluster id and infraenv id 
+  set_fact:
+    cluster_id: "{{ hostvars['localhost']['cluster_id'] }}"
+    infraenv_id: "{{ hostvars['localhost']['infraenv_id'] }}"
+    refresh_token:  "{{ hostvars['localhost']['refresh_token'] }}"
+
+- name: Show cluster_id and infraenv_id for debugging
+  debug:
+    msg: "{{ item.name }} is {{ item.value }}"
+  with_items:
+    - name: "Cluster Id"
+      value: "{{ cluster_id }}"
+    - name: "Infraenv Id"
+      value: "{{ infraenv_id }}"
+
+- name: Check if marker file already exists and install start API call if it does
+  stat:
+    path: "auth/.{{ sno_cluster_name }}-install-started"
+  register: install_started
+
+- name: Wait 5 mins for host to be ready for install
+  block:
+    - name: Get host status
+      uri:
+        url: "https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}/hosts"
+        method: GET
+        headers:
+          Authorization:  "{{ 'Bearer ' + refresh_token }}"
+        return_content: yes
+      register: host_response
+      when: not install_started.stat.exists
+
+    - name: Show host status
+      debug:
+        msg: "Host status is {{ host_response.json[0].status_info | default('Host ststus undefined') }}"
+      when: not install_started.stat.exists
+
+  until: host_response is defined and host_response.json[0].status_info == "Host is ready to be installed"
+  retries: 30
+  delay: 10
+  
+- name: Start install
+  block:
+    - name: Call Assisted Installer API 
+      uri:
+        url: "https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ cluster_id }}/actions/install"
+        method: POST
+        headers:
+          Authorization:  "{{ 'Bearer ' + refresh_token }}"
+        return_content: yes
+        status_code: [202.400]
+      register: start_response
+
+    - name: Create marker file
+      file:
+        path: "auth/.{{ sno_cluster_name }}-install-started"
+        state: touch
+      
+  when: not install_started.stat.exists
+
+

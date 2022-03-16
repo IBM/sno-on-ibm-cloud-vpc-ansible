@@ -36,11 +36,6 @@
   set_fact:
     escaped_pull_secret: "{{ lookup('file','auth/pull-secret.txt') | replace('\"', '\\\"') }}"
 
-# - name: Register cluster data
-#   template:
-#     src: "data/register_cluster.json.j2"
-#     dest: "data/register_cluster.json"
-
 - name: Get clusters
   uri:
     url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters
@@ -59,37 +54,63 @@
   debug:
     var: cluster_names
 
-- name: Register a cluster
-  uri:
-    url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters
-    method: POST
-    body_format: json
-    status_code: [201]
-    headers:
-      Content-Type: "application/json"
-      Authorization: "{{ 'Bearer ' + refresh_token }}"
-    body: |
-      {
-        "name": "{{ sno_cluster_name }}",
-        "high_availability_mode": "None",
-        "openshift_version": "4.10",
-        "pull_secret": "{{ escaped_pull_secret }}",
-        "base_dns_domain": "{{ sno_domain_name }}"
-      }
+- name: Cluster does not exist
+  block:
 
-    return_content: yes
-  register: register_cluster_response
+    - name: Clean up any only marker files
+      file:
+        path: "auth/.{{ sno_cluster_name }}-install-started"
+        state: absent
+
+    - name: Register a cluster
+      uri:
+        url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters
+        method: POST
+        body_format: json
+        status_code: [201]
+        headers:
+          Content-Type: "application/json"
+          Authorization: "{{ 'Bearer ' + refresh_token }}"
+        body: |
+          {
+            "name": "{{ sno_cluster_name }}",
+            "high_availability_mode": "None",
+            "openshift_version": "4.10",
+            "pull_secret": "{{ escaped_pull_secret }}",
+            "base_dns_domain": "{{ sno_domain_name }}",
+            "vip_dhcp_allocation": false,
+            "ssh_public_key": "{{ lookup('file', kvmadmin_ssh_public_key_path) }}",
+            "machine_networks": [
+                {
+                    "cidr": "{{ sno_machine_cidr  }}"
+                }
+             ]
+           }
+
+        return_content: yes
+      register: register_cluster_response
+
+    - name: Parse response
+      set_fact:
+        cluster_id: "{{ register_cluster_response.json.id }}"
+
+    - name: Cluster Id
+      debug:
+        var: cluster_id
+
   when: "sno_cluster_name not in cluster_names"
 
-- name: Parse response
-  set_fact:
-    cluster_id: "{{ register_cluster_response.json.id }}"
-  when: "sno_cluster_name not in cluster_names"
+- name: Cluster already exists
+  block:
+    - name: Get existing cluster info
+      set_fact:
+        existing_cluster: "{{ get_clusters_response.json |selectattr('name','eq',sno_cluster_name) | first }}" 
+      
+    - name: Existing cluster id
+      set_fact:
+        cluster_id: "{{ existing_cluster.id }}"      
 
-- name: Cluster Id
-  debug:
-    var: cluster_id
-  when: "sno_cluster_name not in cluster_names"
+  when: "sno_cluster_name in cluster_names"
 
 - name: Get infra-envs
   uri:
@@ -105,79 +126,86 @@
   set_fact:
     infraenv_names: "{{ get_infraenvs_response.json | map(attribute='name') | list }}"
 
-- name: Infrenvs names for debugging
+- name: Infra-envs names for debugging
   debug:
     var: infraenv_names
 
-- name: Register an infraenv
-  uri:
-    url: https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs
-    method: POST
-    status_code: [201]
-    body_format: json
-    headers:
-      Authorization:  "{{ 'Bearer ' + refresh_token }}"
-    body: |
-        {
-          "name": "{{ sno_infraenv_name }}",
-          "cluster_id": "{{ cluster_id }}",
-          "openshift_version": "4.10",
-          "pull_secret": "{{ escaped_pull_secret  }}"
-        }
-  register: register_infraenv_response
-  when: "sno_infraenv_name not in infraenv_names"
+- name: Infrenv does not exist
+  block:
+  
+    - name: Register an infraenv
+      uri:
+        url: https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs
+        method: POST
+        status_code: [201]
+        body_format: json
+        headers:
+          Authorization:  "{{ 'Bearer ' + refresh_token }}"
+        body: |
+            {
+              "name": "{{ sno_infraenv_name }}",
+              "cluster_id": "{{ cluster_id }}",
+              "openshift_version": "4.10",
+              "pull_secret": "{{ escaped_pull_secret  }}",
+              "image_type": "full-iso"
+            }
+      register: register_infraenv_response
 
-- name: Parse response
-  set_fact:
-    infraenv_id: "{{ register_infraenv_response.json.id }}"
-  when: "sno_infraenv_name not in infraenv_names"
+    - name: Parse response
+      set_fact:
+        infraenv_id: "{{ register_infraenv_response.json.id }}"
 
-- name: Infraenv Id
-  debug:
-    var: infraenv_id
-  when: "sno_infraenv_name not in infraenv_names"
+    - name: Infraenv Id
+      debug:
+        var: infraenv_id
+   
+  when:  "sno_infraenv_name not in infraenv_names"
 
-- name: Patch cluster
-  uri:
-    url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ cluster_id }}
-    method: PATCH
-    status_code: [201]
-    body_format: json
-    headers:
-      Authorization:  "{{ 'Bearer ' + refresh_token }}"
-    body:
-      http_proxy: ""
-      https_proxy: ""
-      no_proxy: ""
-      pull_secret: ""
-      ssh_authorized_key: "{{ lookup('file', ssh_public_key_path) }}"
-    return_content: yes
-  register: patch_cluster_response
-  when: "sno_cluster_name not in cluster_names"
+- name: Infraenv does exist
+  block:
 
-- name: Entire response for debugging
-  debug:
-    var: patch_cluster_response.json
-  when: "sno_cluster_name not in cluster_names"
+    - name: Get existing infraenv info
+      set_fact:
+        existing_infraenv: "{{ get_infraenvs_response.json |selectattr('name','eq',sno_infraenv_name) | first }}" 
+    
+    - name: Existing infraenv id
+      set_fact:
+         infraenv_id: "{{ existing_infraenv.id }}"      
+ 
+  when: "sno_infraenv_name in infraenv_names"
 
-- name: Patch InfraEnv
-  uri:
-    url: "https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}"
-    method: PATCH
-    status_code: [201]
-    body_format: json
-    headers:
-      Authorization:  "{{ 'Bearer ' + refresh_token }}"
-    body:
-      http_proxy: ""
-      https_proxy: ""
-      no_proxy: ""
-      pull_secret: ""
-      image_type: "full-iso"
-      ssh_authorized_key: "{{ lookup('file', ssh_public_key_path) }}"
-    return_content: yes
-  register: patch_infraenv_response
-  when: "sno_infraenv_name not in infraenv_names"
+# - name: Patch cluster
+#   uri:
+#     url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ cluster_id }}
+#     method: PATCH
+#     status_code: [201]
+#     body_format: json
+#     headers:
+#       Authorization:  "{{ 'Bearer ' + refresh_token }}"
+#     body:
+#       machine_network_cidr: "{{ sno_machine_cidr  }}"
+#       vip_dhcp_allocation: false
+#       ssh_public_key: "{{ lookup('file', kvmadmin_ssh_public_key_path) }}"
+#     return_content: yes
+#   register: patch_cluster_response
+
+# - name: Entire response for debugging
+#   debug:
+#     var: patch_cluster_response.json
+
+# - name: Patch InfraEnv
+#   uri:
+#     url: "https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}"
+#     method: PATCH
+#     status_code: [201]
+#     body_format: json
+#     headers:
+#       Authorization:  "{{ 'Bearer ' + refresh_token }}"
+#     body:
+#       image_type: "full-iso"
+#       ssh_authorized_key: "{{ lookup('file', kvmadmin_ssh_public_key_path) }}"
+#     return_content: yes
+#   register: patch_infraenv_response
 
 - name: Get InfraEnv Image Download URL
   uri:
@@ -187,13 +215,11 @@
       Authorization:  "{{ 'Bearer ' + refresh_token }}"
     return_content: yes
   register: image_url_response
-  when: "sno_infraenv_name not in infraenv_names"
 
 - name: Save download image URL as fact
   set_fact:
-    download_url: image_url_response.json.download_url
-  when: "sno_infraenv_name not in infraenv_names"
+    download_url: "{{ image_url_response.json.download_url }}"
 
-- name: Entire response for debugging
+- name: Download URL for  debugging
   debug:
-    var: image_url_response.json
+    var: download_url

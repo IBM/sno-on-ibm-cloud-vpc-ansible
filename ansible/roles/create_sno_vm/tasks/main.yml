@@ -1,0 +1,52 @@
+---
+- name: Get existing VMs
+  community.libvirt.virt:
+    command: list_vms
+  register: existing_vms
+  changed_when: no
+
+- name: Create SNO VM if it isnt there already
+  block:
+  
+    - name: Get ISO 
+      get_url:
+        url: "{{ download_url }}"
+        dest: "/tmp//discovery_{{ sno_cluster_name }}.iso"
+        mode:  0644
+
+    - name: Generate empty VM disk
+      shell: |
+        qemu-img create -f qcow2 {{ libvirt_pool_dir }}/{{ sno_vm_name }}.qcow2 120G
+      args:
+        creates: "{{ libvirt_pool_dir }}/{{ sno_vm_name }}.qcow2"
+
+    - name: Change VM disk ownership to qemu
+      file:
+        path: "{{ libvirt_pool_dir }}/{{ sno_vm_name }}.qcow2"
+        owner: qemu
+        group: qemu
+
+    - name: Define SNO VM
+      community.libvirt.virt:
+        command: define
+        xml: "{{ lookup('template', 'sno-vm-template.xml.j2') }}"
+    
+  when:  "sno_vm_name not in existing_vms.list_vms"
+
+- name: Ensure VM is started
+  community.libvirt.virt:
+    name: "{{ sno_vm_name }}"
+    state: running
+  register: vm_start_results
+  until: "vm_start_results is success"
+  retries: 30
+  delay: 10
+
+- name: Wait for VM to become reachable over SSH
+  wait_for:
+    host: "{{ sno_ip_address }}"
+    port: 22
+    delay: 20
+    timeout: 180
+    sleep: 10
+    state: started

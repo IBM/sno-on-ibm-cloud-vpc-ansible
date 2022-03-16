@@ -1,5 +1,6 @@
 .DS_Store
 **/.DS_Store
-ansible/group_vars/all
-ansible/auth/token.txt
-ansible/auth/pull-secret.txt
+ansible/group_vars/*
+!ansible/group_vars/all.example
+ansible/auth/*
+!ansible/auth/.donotdelete

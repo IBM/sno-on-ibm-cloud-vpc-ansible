@@ -1,0 +1,86 @@
+---
+- name: Poll for cluster install completion for 90 minutes
+  shell: |
+    scripts/poll-for-install-completion.sh {{ playbook_dir }}/auth/token.txt {{ sno_cluster_name }}
+  register: poll_for_install_completion
+  async: 5400
+  poll: 0 
+
+- name: Wait for polling script to complete
+  async_status: 
+     jid: "{{ poll_for_install_completion.ansible_job_id }}"
+  register: job_result
+  until: job_result.finished
+  retries: 270
+  delay: 20
+
+- name: Shell script output for debugging
+  debug:
+    var: poll_for_install_completion
+   
+- name: Shell script output for debugging
+  debug:
+    var: job_result
+   
+- name: Check result of polling script
+  assert:
+    that: "'Error' not in job_result.stdout"
+    fail_msg: "Error: Polling script failed!"
+    success_msg: "Install completed successfully!"
+
+- name: Assisted installer token
+  uri:
+    url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+    method: POST
+    status_code: [200]
+    body_format: form-urlencoded
+    body:
+      grant_type: refresh_token
+      client_id: cloud-services
+      refresh_token: "{{ lookup('file','auth/token.txt') }}"
+    return_content: yes
+
+  register: refresh_token_response
+
+- name: Parse response
+  set_fact:
+    refresh_token: "{{ refresh_token_response.json.access_token }}"
+
+- name: Get installer status
+  uri:
+    url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters?with_hosts=true
+    method: GET
+    headers:
+      Authorization: "{{ 'Bearer ' + refresh_token }}"
+      accept: "application/json"
+    return_content: yes
+  register: install_status_response
+
+- name: Save installer status
+  set_fact:
+    installer_status: "{{ install_status_response.json | selectattr('name','eq',sno_cluster_name) | first }}"
+
+- name: Get kubeconfig file url
+  uri:
+    url: "https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ installer_status.id }}/downloads/credentials-presigned?file_name=kubeconfig"
+    headers:
+      Authorization:  "{{ 'Bearer ' + refresh_token }}"
+      accept: "application/json"
+    return_content: yes
+  register: get_kubeconfig_url_response
+
+
+- name: Get kubeconfig file
+  get_url:
+    url: "{{ get_kubeconfig_url_response.json.url }}"
+    dest: auth/{{ sno_cluster_name }}-kubeconfig
+    force: yes
+
+- name: Get kubeadmin creds
+  get_url:
+     url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ installer_status.id }}/credentials
+     headers:
+       Authorization:  "{{ 'Bearer ' + refresh_token }}"
+       accept: "application/json"
+     dest: auth/{{ sno_cluster_name }}-kubeadmin.json
+     force: yes
