@@ -1,4 +1,4 @@
-# Ansible playbook to spin up a Single Node OpenShift Cluster on IBM Cloud
+# Spin up a Single Node OpenShift Cluster on IBM Cloud
 
 This is a set of Ansible playbooks that allow you to spin up an Single Node Openshift Cluster on IBM Cloud VPC by running a single Ansible playbook.  The playbooks  provision the required IBM Cloud resources  and  make use of Red Hat's [Assisted Installer service](https://github.com/openshift/assisted-service/tree/master/docs/user-guide) to automate the installation of the Single Node Cluster. The following are provisoned by the playbooks:
 
