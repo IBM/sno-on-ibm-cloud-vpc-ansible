@@ -1,34 +1,8 @@
 ---
 name_prefix: djc-sno-ibmcloud-ai-api
-vsi_profile: bx2d-16x64
-vsi_image: 'ibm-rocky-linux-8-5-minimal-amd64-2'
-ssh_public_key_path: '/Users/carew@us.ibm.com/.ssh/id_rsa.pub'
-ssh_private_key_path: '/Users/carew@us.ibm.com/.ssh/id_rsa'
-ansible_ssh_private_key_file: "{{ ssh_private_key_path }}"
-kvmadmin_ssh_public_key_path: auth/id_rsa.pub
-kvmadmin_ssh_private_key_path: auth/id_rsa
-total_ipv4_address_count: 256
 zone: us-east-3
 region: us-east
 resource_group_name: "djc-rg"
-setup_vsi_gui: true
-disable_se_linux_flag: true
-utility_image_name: sno-kvm-utilities-fedora34.x86_64.qcow2
-utility_image_url: https://djc-img-storage.s3.us-south.cloud-object-storage.appdomain.cloud/{{ utility_image_name }}.gz
-utility_image_sha: 7c0da0ba3050b19aa8b16b5264a0431ddf7860f508eed97e349b2ac00b454f16
-libvirt_pool_dir: "/mnt/kvmimgs/images"
-utility_vm_name: sno_utility_vm
-utility_vm_vcpus: 2
-utility_vm_ram_mb: 4096
-utility_vm_net: default
-sno_cluster_name: sno410kvm3
-sno_machine_cidr: "192.168.122.0/24"
-sno_ip_address: "192.168.122.3"
+setup_vsi_gui: false
+sno_cluster_name: sno410kvm4
 sno_domain_name: ibm-build-team.cloud
-sno_vm_name: "{{ sno_cluster_name }}-vm"
-sno_vm_vcpus: 8
-sno_vm_ram_mb: 32768
-sno_vm_disk_size: 120Gi
-sno_mac_address: 54:50:90:0e:45:12
-assisted_service_api: api.openshift.com
-sno_infraenv_name: "{{ sno_cluster_name }}-infraenv"

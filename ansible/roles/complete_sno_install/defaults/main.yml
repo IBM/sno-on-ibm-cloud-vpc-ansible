@@ -1,0 +1,2 @@
+assisted_service_api: api.openshift.com
+sno_infraenv_name: "{{ sno_cluster_name }}-infraenv"

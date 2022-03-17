@@ -56,6 +56,8 @@
 - hosts: kvm_vsi
   gather_facts: false
   become: yes
+  vars:
+    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
 
   roles:
     - setup_rdp
@@ -75,11 +77,11 @@
 
                 To set the kvmadmin password login in via SSH using the command:
 
-                    ssh root@{{ fip.address }}
+                ssh -i {{ playbook_dir }}/auth/{{ name_prefix }}-local-id_rsa kvmadmin@{{ fip.address }}
 
                 Then run the following command:
 
-                    passwd kvmadmin
+                   sudo passwd kvmadmin
 
                 That's it ! You can access via RDP by pointing your RDP client to:
 

@@ -68,6 +68,11 @@
     region: "{{ region }}"
   when: ssh_key.id is defined
 
+- name: Remove local ssh-key
+  openssh_keypair:
+    path: "auth/{{ name_prefix }}-local-id_rsa"
+    state: absent
+
 
 - name: Get Subnet Info
   ibm_is_subnet_info:
@@ -106,3 +111,18 @@
     id: "{{ vpc.id }}"
     region: "{{ region }}"
   when: vpc.id is defined
+
+- name: Remove remote ssh-key
+  openssh_keypair:
+    path: "auth/{{ name_prefix }}-remote-id_rsa"
+    state: absent
+
+- name: Remove Cluster creds kubeadmin
+  file:
+    path: "auth/{{ sno_cluster_name }}-kubeadmin.json"
+    state: absent
+
+- name: Remove Cluster creds kubeconfig
+  file:
+    path: "auth/{{ sno_cluster_name }}-kubeconfig"
+    state: absent

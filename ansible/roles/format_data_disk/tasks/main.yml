@@ -38,20 +38,6 @@
         dev: "/dev/vg_kvm/lv_kvm"
         state: present
 
-    # - name: Get UUID of new filesystem
-    #   shell: blkid -s UUID -o value /dev/mapper/vg_kvm-lv_kvm
-    #   register: blkid_out
-    #
-    # - name: Add mount to /etc/fstab
-    #   lineinfile:
-    #     path: /etc/fstab
-    #     regexp: "^UUID={{ blkid_out.stdout }}"
-    #     line: "UUID={{ blkid_out.stdout }} \t /kvmimgs \t xfs \t defaults \t 0 0"
-    #     state: present
-    #
-    # - name: Mount new filesystem
-    #   shell: mount -a
-
     - name: Mount new filesystem
       mount:
         path: /mnt/kvmimgs

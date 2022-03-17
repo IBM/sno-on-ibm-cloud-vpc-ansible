@@ -16,13 +16,10 @@
         success_msg: "Required variable {{ item }} is defined"
       with_items:
         - name_prefix
-        - vsi_profile
-        - vsi_image
-        - ssh_public_key_path
-        - total_ipv4_address_count
         - zone
         - region
         - resource_group_name
+        - setup_vsi_gui
 
   roles:
     - provision_kvm_host
@@ -48,6 +45,8 @@
 - hosts: kvm_vsi
   gather_facts: false
   become: yes
+  vars:
+    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
 
   pre_tasks:
 
@@ -73,9 +72,8 @@
   roles:
     - role: format_data_disk
     - role: disable_se_linux
-      when: disable_se_linux_flag
     - role: reboot_vsi
-      when: disable_se_linux_flag and selinux_out is defined and selinux_out.reboot_required
+      when: selinux_out is defined and selinux_out.reboot_required
 
   post_tasks:
 
@@ -85,6 +83,6 @@
          msg: |
                 Your VSI has been successfully provisioned !
                 Login in via SSH using the command:
-                ssh root@{{ fip.address }}
+                ssh -i {{ playbook_dir }}/auth/{{ name_prefix }}-local-id_rsa root@{{ fip.address }}
       debug:
         msg: "{{ msg.split('\n') }}"

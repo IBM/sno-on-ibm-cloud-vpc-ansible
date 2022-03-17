@@ -1,0 +1,8 @@
+sno_vm_name: "{{ sno_cluster_name }}-vm"
+sno_machine_cidr: "192.168.122.0/24"
+sno_ip_address: "192.168.122.3"
+sno_vm_vcpus: 8
+sno_vm_ram_mb: 32768
+sno_vm_disk_size: 120Gi
+sno_mac_address: 54:50:90:0e:45:12
+libvirt_pool_dir: "/mnt/kvmimgs/images"

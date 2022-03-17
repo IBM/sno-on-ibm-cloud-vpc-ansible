@@ -19,9 +19,7 @@
       with_items:
         - name_prefix
         - region
-        - ssh_public_key_path
-        - assisted_service_api
-        - sno_infraenv_name
+    
 
     - name: Look for token file
       stat:
@@ -82,6 +80,8 @@
 - hosts: kvm_vsi
   gather_facts: false
   become: yes
+  vars:
+    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
 
   pre_tasks:
     - name: Get ISO download URL from previous play
@@ -90,10 +90,20 @@
 
   roles:
     - role: create_sno_vm
+  
+  post_tasks:
+    - name: Success message
+      debug:
+        msg: "Your SNO cluster is ready to install"
+
+- hosts: localhost
+  gather_facts: true
+
+  roles:
     - role: start_sno_install
 
   post_tasks:
-
     - name: Success message
       debug:
-         msg: "Your SNO install started successfully !"
+        msg: "Your SNO install started successfully !"
+        

@@ -90,7 +90,7 @@
         owner: kvmadmin
         group: kvmadmin
 
-    - name: Run playlist targeting utility vm
+    - name: Run playbook targeting utility vm
       shell: 'ANSIBLE_HOST_KEY_CHECKING=False ansible-playbook  -i /home/kvmadmin/setup/hosts /home/kvmadmin/setup/remote_playbook.yml'
       args:
         chdir: /home/kvmadmin/setup

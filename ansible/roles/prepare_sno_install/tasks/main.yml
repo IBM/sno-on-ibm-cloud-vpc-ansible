@@ -57,7 +57,7 @@
 - name: Cluster does not exist
   block:
 
-    - name: Clean up any only marker files
+    - name: Clean up any old marker files
       file:
         path: "auth/.{{ sno_cluster_name }}-install-started"
         state: absent
@@ -75,11 +75,11 @@
           {
             "name": "{{ sno_cluster_name }}",
             "high_availability_mode": "None",
-            "openshift_version": "4.10",
+            "openshift_version": "{{ sno_version }}",
             "pull_secret": "{{ escaped_pull_secret }}",
             "base_dns_domain": "{{ sno_domain_name }}",
             "vip_dhcp_allocation": false,
-            "ssh_public_key": "{{ lookup('file', kvmadmin_ssh_public_key_path) }}",
+            "ssh_public_key": "{{ lookup('file', 'auth/' + name_prefix + '-remote-id_rsa.pub' ) }}",
             "machine_networks": [
                 {
                     "cidr": "{{ sno_machine_cidr  }}"
@@ -173,39 +173,6 @@
          infraenv_id: "{{ existing_infraenv.id }}"      
  
   when: "sno_infraenv_name in infraenv_names"
-
-# - name: Patch cluster
-#   uri:
-#     url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ cluster_id }}
-#     method: PATCH
-#     status_code: [201]
-#     body_format: json
-#     headers:
-#       Authorization:  "{{ 'Bearer ' + refresh_token }}"
-#     body:
-#       machine_network_cidr: "{{ sno_machine_cidr  }}"
-#       vip_dhcp_allocation: false
-#       ssh_public_key: "{{ lookup('file', kvmadmin_ssh_public_key_path) }}"
-#     return_content: yes
-#   register: patch_cluster_response
-
-# - name: Entire response for debugging
-#   debug:
-#     var: patch_cluster_response.json
-
-# - name: Patch InfraEnv
-#   uri:
-#     url: "https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}"
-#     method: PATCH
-#     status_code: [201]
-#     body_format: json
-#     headers:
-#       Authorization:  "{{ 'Bearer ' + refresh_token }}"
-#     body:
-#       image_type: "full-iso"
-#       ssh_authorized_key: "{{ lookup('file', kvmadmin_ssh_public_key_path) }}"
-#     return_content: yes
-#   register: patch_infraenv_response
 
 - name: Get InfraEnv Image Download URL
   uri:

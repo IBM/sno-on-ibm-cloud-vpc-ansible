@@ -22,7 +22,7 @@
       with_items:
         - name_prefix
         - region
-        - ssh_public_key_path
+
 
     - name: Get VSIs floating IP if we don't have it yet
       block:
@@ -62,6 +62,8 @@
 - hosts: kvm_vsi
   gather_facts: false
   become: yes
+  vars:
+    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
 
   pre_tasks:
     - name: Get Floating IP info from previous play
@@ -81,7 +83,7 @@
                 Your VSIs GUI enviroment has been installed successfully !
                 Setup VNC or RDP to start accessing it
                 You can still access your VSI by logging in via SSH:
-                      ssh kvmadmin@{{ fip.address }}
+                     ssh -i {{ playbook_dir }}/auth/{{ name_prefix }}-local-id_rsa kvmadmin@{{ fip.address }}
                 For root access you can prefix each command with sudo as shown below:
                       sudo dnf install -y my-favorite-utility
       debug:

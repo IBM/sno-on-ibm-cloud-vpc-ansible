@@ -8,6 +8,13 @@ max_retries=269
 
 percent_complete=0
 
+percent_complete_from_api=0
+
+max_error_retries=10  # Allow up to 10 errors before throwing in the towel
+
+error_retries=0
+
+
 while [ $retries -lt $max_retries -a $percent_complete -lt 100 ]
 do
    retries=$(($retries+1))
@@ -18,21 +25,29 @@ do
      --data-urlencode "refresh_token=${offline_access_token}" \
      https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token | jq -r .access_token)
 
-    percent_complete=$(curl -s -X GET "https://api.openshift.com/api/assisted-install/v2/clusters?with_hosts=true"\
+    percent_complete_from_api=$(curl -s -X GET "https://api.openshift.com/api/assisted-install/v2/clusters?with_hosts=true"\
       -H "Authorization: Bearer $token"  -H "accept: application/json" \
-      -H "get_unregistered_clusters: false" | jq -r ".[] | select (.name == \"$cluster_name\") |.progress.total_percentage")
+      -H "get_unregistered_clusters: false" | jq -r ".[] | select (.name == \"$cluster_name\") |.progress.total_percentage" 2>&1)
 
-    if [[ $percent_complete =~ ^(0|[1-9][0-9]{0,1}|100)$ ]]
+    if [[ $percent_complete_from_api =~ ^(0|[1-9][0-9]{0,1}|100)$ ]]
     then
+        percent_complete=$percent_complete_from_api
         if [ $percent_complete -eq 100 ]
         then
-        break
+          break
         else
-        sleep 20
+          sleep 20
         fi
     else
-      echo "Error: Assisted Installer API call failed" 
-      exit 1
+      error_retries=$(($error_retries+1))
+      if [ $error_retries -lt $max_error_retries ]
+      then
+         sleep 20
+         continue
+      else
+         echo "Error: Assisted Installer API call failed - max error retries exceeded" 
+         exit 1
+       fi 
     fi
 done
 

@@ -25,20 +25,39 @@
       uri:
         url: "https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}/hosts"
         method: GET
+        status_code: [200,409]
         headers:
           Authorization:  "{{ 'Bearer ' + refresh_token }}"
         return_content: yes
       register: host_response
-      when: not install_started.stat.exists
+      until: host_response.status == 200 and  host_response.json is defined and (host_response.json | length > 0) and  host_response.json[0].status_info == "Host is ready to be installed"
+      retries: 30
+      delay: 10
 
     - name: Show host status
       debug:
-        msg: "Host status is {{ host_response.json[0].status_info | default('Host ststus undefined') }}"
-      when: not install_started.stat.exists
+        msg: "Host status is {{ host_response.json[0].status_info | default('Host status undefined') }}"
+      when: host_response.status == 200 and host_response.json is defined and (host_response.json | length > 0)
 
-  until: host_response is defined and host_response.json[0].status_info == "Host is ready to be installed"
-  retries: 30
-  delay: 10
+    - name: Set hostname of single node
+      uri:
+        url: "https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}/hosts/{{ host_response.json[0].id }}"
+        method: PATCH
+        body_format: json
+        status_code: [201]
+        headers:
+          Content-Type: "application/json"
+          Authorization: "{{ 'Bearer ' + refresh_token }}"
+        body: |
+          {
+            "host_name": "sno.{{ sno_cluster_name }}.{{ sno_domain_name }}"
+          }
+
+        return_content: yes
+      register: patch_hostname_response
+
+  when: not install_started.stat.exists
+
   
 - name: Start install
   block:
@@ -53,9 +72,11 @@
       register: start_response
 
     - name: Create marker file
-      file:
+      lineinfile:
         path: "auth/.{{ sno_cluster_name }}-install-started"
-        state: touch
+        line: "not empty"
+        state: present
+        create: yes
       
   when: not install_started.stat.exists
 

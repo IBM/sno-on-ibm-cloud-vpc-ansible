@@ -40,10 +40,10 @@
     state: started
     enabled: yes
 
-- name: Add ssh key to kvmadmin user
+- name: Add local ssh key to kvmadmin user
   authorized_key:
     user: kvmadmin
-    key: "{{ lookup('file', ssh_public_key_path) }}"
+    key: "{{ lookup('file', 'auth/' + name_prefix + '-local-id_rsa.pub') }}"
     state: present
 
 - name: Add user kvmadmin to sudo
@@ -57,7 +57,7 @@
 
 - name: Copy new SSH keypair for user kvmadmin Step 1
   copy:
-    src: "auth/id_rsa.pub"
+    src: "auth/{{ name_prefix }}-remote-id_rsa.pub"
     dest: /home/kvmadmin/.ssh/id_rsa.pub
     mode: 0400
     owner: kvmadmin
@@ -65,7 +65,7 @@
 
 - name: Copy new SSH keypair for user kvmadmin Step 2
   copy:
-    src: "auth/id_rsa"
+    src: "auth/{{ name_prefix }}-remote-id_rsa"
     dest: /home/kvmadmin/.ssh/id_rsa
     mode: 0400
     owner: kvmadmin

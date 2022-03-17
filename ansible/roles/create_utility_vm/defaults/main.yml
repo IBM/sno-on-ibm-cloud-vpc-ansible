@@ -1,2 +1,9 @@
-state_dir: ".cloud-resources"
-network_interface_name: "eth0"
+utility_image_name: sno-kvm-utilities-fedora34.x86_64.qcow2
+utility_image_url: https://djc-img-storage.s3.us-south.cloud-object-storage.appdomain.cloud/{{ utility_image_name }}.gz
+utility_image_sha: 7c0da0ba3050b19aa8b16b5264a0431ddf7860f508eed97e349b2ac00b454f16
+libvirt_pool_dir: "/mnt/kvmimgs/images"
+utility_vm_name: sno_utility_vm
+utility_vm_vcpus: 2
+utility_vm_ram_mb: 4096
+utility_vm_net: default
+sno_mac_address: 54:50:90:0e:45:12
