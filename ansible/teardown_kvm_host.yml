@@ -3,7 +3,6 @@
   hosts: localhost
   gather_facts: true
 
-
   pre_tasks:
     - name: Verify that IBM Cloud API KEY is  defined
       assert:
@@ -21,7 +20,6 @@
         - region
         - zone
         - resource_group_name
-
 
   roles:
     - teardown_kvm_host

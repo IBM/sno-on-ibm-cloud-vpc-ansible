@@ -1,0 +1,95 @@
+global
+	log /dev/log	local0
+	log /dev/log	local1 notice
+	chroot /var/lib/haproxy
+	stats socket /run/haproxy/admin.sock mode 660 level admin
+	stats timeout 30s
+	user haproxy
+	group haproxy
+	daemon
+
+	# Default SSL material locations
+	ca-base /etc/ssl/certs
+	crt-base /etc/ssl/private
+
+	# Default ciphers to use on SSL-enabled listening sockets.
+	# For more information, see ciphers(1SSL). This list is from:
+	#  https://hynek.me/articles/hardening-your-web-servers-ssl-ciphers/
+	ssl-default-bind-ciphers ECDH+AESGCM:DH+AESGCM:ECDH+AES256:DH+AES256:ECDH+AES128:DH+AES:ECDH+3DES:DH+3DES:RSA+AESGCM:RSA+AES:RSA+3DES:!aNULL:!MD5:!DSS
+	ssl-default-bind-options no-sslv3
+
+defaults
+    mode                    http
+    log                     global
+    option                  httplog
+    option                  dontlognull
+    option http-server-close
+#    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 3000
+
+#---------------------------------------------------------------------
+
+listen stats
+    bind :9000 interface eth0
+    mode http
+    stats enable
+    stats uri /
+    monitor-uri /healthz
+
+
+frontend openshift-api-server
+    bind *:6443 interface eth0
+    default_backend openshift-api-server
+    mode tcp
+    option tcplog
+
+backend openshift-api-server
+    balance source
+    mode tcp
+    server master0 {{ sno_ip_address }}:6443 check
+   
+
+frontend ingress-http
+    bind *:80 interface eth0
+    default_backend ingress-http
+    mode tcp
+    option tcplog
+
+backend ingress-http
+    balance source
+    mode tcp
+    server master0 {{ sno_ip_address }}:80 check
+
+frontend ingress-https
+    bind *:443 interface eth0
+    default_backend ingress-https
+    mode tcp
+    option tcplog
+
+backend ingress-https
+    balance source
+    mode tcp
+    server master0 {{ sno_ip_address }}:443 check
+
+frontend ingress-ssh
+    bind *:8022 interface eth0
+    default_backend ingress-ssh
+    mode tcp
+    option tcplog
+
+backend ingress-ssh
+    balance source
+    mode tcp
+    server master0 {{ sno_ip_address }}:22 check
+ 
+ 
+#---------------------------------------------------------------------

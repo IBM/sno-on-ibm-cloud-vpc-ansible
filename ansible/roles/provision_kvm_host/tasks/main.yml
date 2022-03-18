@@ -41,7 +41,7 @@
 
 - name: Save VPC Subnet as fact
   set_fact:
-    cacheable: True
+    cacheable: true
     subnet: "{{ subnet_create_output.resource }}"
 
 - name: Generate SSH key for localhost if not exists
@@ -112,7 +112,7 @@
 
 - name: Save Floating IP as fact
   set_fact:
-    cacheable: True
+    cacheable: true
     fip: "{{ fip_create_output.resource }}"
 
 - name: Print Floating IP Address
@@ -151,3 +151,48 @@
         port_min: 5901
     region: "{{ region }}"
   when: setup_vsi_gui
+
+- name: Configure Security Group Rule to open Haproxy stats
+  ibm_is_security_group_rule:
+    state: available
+    group: "{{ vpc.default_security_group }}"
+    direction: inbound
+    remote: 0.0.0.0/0
+    tcp:
+      - port_max: 9000
+        port_min: 9000
+    region: "{{ region }}"
+
+- name: Configure Security Group Rule to open HTTPS
+  ibm_is_security_group_rule:
+    state: available
+    group: "{{ vpc.default_security_group }}"
+    direction: inbound
+    remote: 0.0.0.0/0
+    tcp:
+      - port_max: 443
+        port_min: 443
+    region: "{{ region }}"
+
+- name: Configure Security Group Rule to open HTTP
+  ibm_is_security_group_rule:
+    state: available
+    group: "{{ vpc.default_security_group }}"
+    direction: inbound
+    remote: 0.0.0.0/0
+    tcp:
+      - port_max: 80
+        port_min: 80
+    region: "{{ region }}"
+
+- name: Configure Security Group Rule to open OpenShift API
+  ibm_is_security_group_rule:
+    state: available
+    group: "{{ vpc.default_security_group }}"
+    direction: inbound
+    remote: 0.0.0.0/0
+    tcp:
+      - port_max: 6443
+        port_min: 6443
+    region: "{{ region }}"
+    

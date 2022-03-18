@@ -17,21 +17,6 @@
   set_fact:
     refresh_token: "{{ refresh_token_response.json.access_token }}"
 
-- name: Get Feature Support (for debugging)
-  uri:
-    url: "https://{{ assisted_service_api }}/api/assisted-install/v2/feature-support-levels"
-    method: GET
-    status_code: [200]
-    headers:
-      Authorization:  "{{ 'Bearer ' + refresh_token }}"
-    return_content: yes
-  register: get_feature_response
-
-- name: Entire response for debugging
-  debug:
-    var: get_feature_response.json
-
-
 - name: Escaped pull secret
   set_fact:
     escaped_pull_secret: "{{ lookup('file','auth/pull-secret.txt') | replace('\"', '\\\"') }}"

@@ -1,0 +1,12 @@
+---
+- hosts: localhost
+  gather_facts: true
+
+
+  roles:
+    - validate_parms
+
+  post_tasks:
+    - name: Success message
+      debug:
+        msg: "Parameter validation successful"

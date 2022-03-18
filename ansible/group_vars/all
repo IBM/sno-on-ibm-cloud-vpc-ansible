@@ -4,5 +4,6 @@ zone: us-east-3
 region: us-east
 resource_group_name: "djc-rg"
 setup_vsi_gui: false
-sno_cluster_name: sno410kvm4
+sno_cluster_name: sno49kvm5
 sno_domain_name: ibm-build-team.cloud
+sno_version: "4.9"

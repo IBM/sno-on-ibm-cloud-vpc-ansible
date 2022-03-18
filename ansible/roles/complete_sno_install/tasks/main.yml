@@ -60,6 +60,10 @@
   set_fact:
     installer_status: "{{ install_status_response.json | selectattr('name','eq',sno_cluster_name) | first }}"
 
+- name: Save SNO ip address
+  set_fact:
+    sno_ip: "{{ sno_ip_address }}"
+
 - name: Get kubeconfig file url
   uri:
     url: "https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ installer_status.id }}/downloads/credentials-presigned?file_name=kubeconfig"
@@ -84,3 +88,4 @@
        accept: "application/json"
      dest: auth/{{ sno_cluster_name }}-kubeadmin.json
      force: yes
+

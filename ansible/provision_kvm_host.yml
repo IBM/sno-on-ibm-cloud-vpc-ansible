@@ -2,27 +2,10 @@
 - hosts: localhost
   gather_facts: true
 
-  pre_tasks:
-    - name: "Verify that IBM Cloud API KEY is defined"
-      assert:
-        that: lookup('env','IC_API_KEY') != ""
-        fail_msg: "IC_API_KEY env variable is required for this playbook "
-        success_msg: "IBM Cloud API KEY is defined"
-
-    - name: "Verify that required variables are defined"
-      assert:
-        that:  "{{ item }} is defined"
-        fail_msg: "variable {{ item }} is required for this playbook "
-        success_msg: "Required variable {{ item }} is defined"
-      with_items:
-        - name_prefix
-        - zone
-        - region
-        - resource_group_name
-        - setup_vsi_gui
-
   roles:
-    - provision_kvm_host
+    - role: validate_parms
+      when: vars_validated is not defined
+    - role: provision_kvm_host
 
   post_tasks:
     - name: Add VSI to Ansible inventory

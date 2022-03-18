@@ -117,6 +117,11 @@
     path: "auth/{{ name_prefix }}-remote-id_rsa"
     state: absent
 
+- name: Remove local ssh-key
+  openssh_keypair:
+    path: "auth/{{ name_prefix }}-local-id_rsa"
+    state: absent
+
 - name: Remove Cluster creds kubeadmin
   file:
     path: "auth/{{ sno_cluster_name }}-kubeadmin.json"
@@ -126,3 +131,136 @@
   file:
     path: "auth/{{ sno_cluster_name }}-kubeconfig"
     state: absent
+
+- name: Remove Cluster hosts file 
+  file:
+    path: "auth/{{ sno_cluster_name }}.hosts"
+    state: absent
+
+- name: Remove installer marker file 
+  file:
+    path: "auth/.{{ sno_cluster_name }}-install-started"
+    state: absent
+  
+- name: Assisted installer token
+  uri:
+    url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+    method: POST
+    status_code: [200]
+    body_format: form-urlencoded
+    body:
+      grant_type: refresh_token
+      client_id: cloud-services
+      refresh_token: "{{ lookup('file','auth/token.txt') }}"
+    return_content: yes
+
+  register: refresh_token_response
+
+- name: Parse response
+  set_fact:
+    refresh_token: "{{ refresh_token_response.json.access_token }}"
+ 
+- name: Get infra-envs
+  uri:
+    url: https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs
+    method: GET
+    status_code: [200]
+    headers:
+      Authorization: "{{ 'Bearer ' + refresh_token }}"
+    return_content: yes
+  register: get_infraenvs_response
+
+- name: Get infrenv names
+  set_fact:
+    infraenv_names: "{{ get_infraenvs_response.json | map(attribute='name') | list }}"
+
+- name: Infra-envs names for debugging
+  debug:
+    var: infraenv_names
+
+- name: Infraenv does exist
+  block:
+
+    - name: Get existing infraenv info
+      set_fact:
+        existing_infraenv: "{{ get_infraenvs_response.json |selectattr('name','eq',sno_infraenv_name) | first }}" 
+    
+    - name: Existing infraenv id
+      set_fact:
+         infraenv_id: "{{ existing_infraenv.id }}"   
+
+    - name: Get hosts     
+      uri:
+        url: https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}/hosts
+        method: GET
+        status_code: [200]
+        headers:
+          Authorization: "{{ 'Bearer ' + refresh_token }}"
+        return_content: yes
+      register: infraenv_hosts_response
+    
+    - name: Get existing infraenv info
+      set_fact:
+        existing_host: "{{ infraenv_hosts_response.json |selectattr('infra_env_id','eq',infraenv_id) | first }}" 
+    
+    
+    - name: Delete host
+      uri:
+        url: https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}/hosts/{{ existing_host.id  }}
+        method: DELETE
+        status_code: [204]
+        headers:
+          Authorization: "{{ 'Bearer ' + refresh_token }}"     
+      when: existing_host is defined and existing_host.id is defined
+
+    - name: Delete infraenv
+      uri:
+        url: https://{{ assisted_service_api }}/api/assisted-install/v2/infra-envs/{{ infraenv_id }}
+        method: DELETE
+        status_code: [204]
+        headers:
+          Authorization: "{{ 'Bearer ' + refresh_token }}"
+      register: delete_infraenv_response
+   
+  when: "sno_infraenv_name in infraenv_names"
+
+- name: Get clusters
+  uri:
+    url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters
+    method: GET
+    status_code: [200]
+    headers:
+      Authorization: "{{ 'Bearer ' + refresh_token }}"
+    return_content: yes
+  register: get_clusters_response
+
+- name: Get cluster names
+  set_fact:
+    cluster_names: "{{ get_clusters_response.json | map(attribute='name') | list }}"
+
+- name: Cluster names for debugging
+  debug:
+    var: cluster_names
+
+- name: Cluster already exists
+  block:
+    - name: Get existing cluster info
+      set_fact:
+        existing_cluster: "{{ get_clusters_response.json |selectattr('name','eq',sno_cluster_name) | first }}" 
+      
+    - name: Existing cluster id
+      set_fact:
+        cluster_id: "{{ existing_cluster.id }}"      
+
+    - name: Delete cluster
+      uri:
+        url: https://{{ assisted_service_api }}/api/assisted-install/v2/clusters/{{ cluster_id }}
+        method: DELETE
+        status_code: [204]
+        headers:
+          Authorization: "{{ 'Bearer ' + refresh_token }}"
+      register: delete_infraenv_response
+    
+  when: "sno_cluster_name in cluster_names"
+
+

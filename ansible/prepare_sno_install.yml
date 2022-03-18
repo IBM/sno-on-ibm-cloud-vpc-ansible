@@ -4,69 +4,12 @@
   collections:
     - ibm.cloudcollection
 
-  pre_tasks:
-    - name: Verify that IBM Cloud API KEY is  defined
-      assert:
-        that: lookup('env','IC_API_KEY') != ""
-        fail_msg: "IC_API_KEY env variable is required for this playbook "
-        success_msg: "IBM Cloud API KEY is defined"
-
-    - name: "Verify that required variables are defined"
-      assert:
-        that:  "{{ item }} is defined"
-        fail_msg: "variable {{ item }} is required for this playbook "
-        success_msg: "Required variable {{ item }} is defined"
-      with_items:
-        - name_prefix
-        - region
-    
-
-    - name: Look for token file
-      stat:
-        path: "auth/token.txt"
-      register: token_file
-
-    - name: Verify that token file exists
-      assert:
-        that: token_file.stat.exists
-        fail_msg: "Token file auth/token.txt is required for this playbook"
-        success_msg: "Required token file exists"
-
-    - name: Look for pull secret file
-      stat:
-        path: "auth/pull-secret.txt"
-      register: pull_secret_file
-
-    - name: Verify that pull secret  file exists
-      assert:
-        that: pull_secret_file.stat.exists
-        fail_msg: "Pull secret  file auth/pull-secret.txt is required for this playbook"
-        success_msg: "Required pull secret file exists"
-
-
-    - name: Get VSIs floating IP if we don't have it yet
-      block:
-        - name: Get KVM VSIs floating IP
-          ibm_is_floating_ip_info:
-            name: "{{ name_prefix }}-fip"
-            region: "{{ region }}"
-          register: fip_info_output
-
-        - name: Save floating IP as fact
-          set_fact:
-            cacheable: true
-            fip: "{{ fip_info_output.resource }}"
-
-        - name: Verify that floating IP's ipv4 address is defined
-          assert:
-            that: fip.address is defined
-            fail_msg: "IP address of KVM VSI is required for this playbook "
-            success_msg: "IP address of KVM VSI is {{ fip.address }} "
-
-      when: fip is not defined or fip.address is not defined
-
   roles:
-    - prepare_sno_install
+    - role: validate_parms
+      when: vars_validated is not defined
+    - role: get_floating_ip_address
+      when: fip is not defined or fip.address is not defined
+    - role: prepare_sno_install
 
   post_tasks:
     - name: Add VSI to Ansible inventory

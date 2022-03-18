@@ -1,2 +1,3 @@
 assisted_service_api: api.openshift.com
 sno_infraenv_name: "{{ sno_cluster_name }}-infraenv"
+sno_ip_address: "192.168.122.3"

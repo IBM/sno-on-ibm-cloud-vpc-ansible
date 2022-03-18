@@ -1,0 +1,36 @@
+---
+- name: Install haproxy
+  dnf:
+    name:
+      - haproxy
+    state: installed
+
+- name: Save original config file
+  copy:
+    src: /etc/haproxy/haproxy.cfg
+    dest: /etc/haproxy/haproxyorg.cfg
+    remote_src: yes
+    
+- name: Copy custom cfg file 
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    mode: '0644'
+
+- name: Create stats socker folder
+  file:
+    path: /run/haproxy
+    state: directory
+
+
+- name: Restart haproxy
+  systemd:
+    name: haproxy
+    state: restarted
+    enabled: yes
+
+    
+
+
+
+
