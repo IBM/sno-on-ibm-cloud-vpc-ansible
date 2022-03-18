@@ -211,6 +211,9 @@ ii. View the progress . The overall install progress is shown  at the right of t
 ### 5.3 Playbook termination
 
 When the playbook completes the install the terminal window will look like the following. **Note:** If you selected  the GUI option for the KVM host install you will get additional details about accessing the KVM Host via VNC.
+  
+  ![Access info](images/access-info.png)
+  <sub><sub> Figure 5. Access info </sub></sub>
 
 ## 6. Accessing the cluster
 

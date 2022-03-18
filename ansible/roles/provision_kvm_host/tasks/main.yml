@@ -196,3 +196,14 @@
         port_min: 6443
     region: "{{ region }}"
     
+- name: Configure Security Group Rule to open 8022 for SSH to SNO VM
+  ibm_is_security_group_rule:
+    state: available
+    group: "{{ vpc.default_security_group }}"
+    direction: inbound
+    remote: 0.0.0.0/0
+    tcp:
+      - port_max: 8022
+        port_min: 8022
+    region: "{{ region }}"
+    

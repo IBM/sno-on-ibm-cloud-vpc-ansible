@@ -56,7 +56,7 @@
                 The OpenShift SNO cluster is ready ! 
 
                 You can access the KVM host via SSH with:
-                  ssh -i {{ playbook_dir}}/auth/{{ name_prefix}}-local-id_rsa kvmadmin@{{ hostvars['localhost']['fip.address'] }}
+                  ssh -i {{ playbook_dir}}/auth/{{ name_prefix}}-local-id_rsa kvmadmin@kvmhost.{{ sno_cluster_name }}.{{ sno_domain_name }}
 
                 Your OpenShift cluster credentials are in the file {{ playbook_dir}}/auth/{{ sno_cluster_name }}-kubeadmin.json
 
