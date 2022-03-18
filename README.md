@@ -204,7 +204,7 @@ i. Select the corresponding cluster
 
 ii. View the progress . The overall install progress is shown  at the right of the screen.
 
-  ![Install progress](images/your-clusters.png)
+  ![Install progress](images/installer-progress.png)
   <sub><sub>Figure 4. Install progress</sub></sub>
   
 
