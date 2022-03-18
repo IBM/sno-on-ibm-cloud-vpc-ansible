@@ -192,11 +192,21 @@ ansible-playbook quickstart.yml
 
 Progress is displayed by Ansible via the terminal. The longest task is monitoring the Assited Installer once the  install of the  cluster has kicked off. Your screen will look like the following:
 
+  ![Polling Task](images/polling-script.png)
+  <sub><sub>Figure 2. Polling the Assisted Installer</sub></sub>
+
 Login to the Assisted Installer portal [here](https://console.redhat.com/openshift/assisted-installer/clusters) to see more granular progress updates:
 
 i. Select the corresponding cluster
 
-ii. View the progress . The overall install progress is show near the top.
+  ![Select your cluster](images/your-clusters.png)
+  <sub><sub>Figure 3. Your clusters</sub></sub>
+
+ii. View the progress . The overall install progress is shown  at the right of the screen.
+
+  ![Install progress](images/your-clusters.png)
+  <sub><sub>Figure 4. Install progress</sub></sub>
+  
 
 ### 5.3 Playbook termination
 
@@ -213,7 +223,7 @@ ii. Open the file *auth/[your cluster name]-kubeadmin.json* to see your cluster 
 
 iii. For browser access go to the URL https://console-openshift-console.apps.[your cluster name].[your cluster domain] and login with your cluster credentials
 
-     For oc CLI acccess emter the following command 
+     For oc CLI acccess enter the following command 
      ```
        oc login api.[your cluster name].[your cluster domain]:6443 
      ```
