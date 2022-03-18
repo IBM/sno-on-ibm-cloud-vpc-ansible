@@ -8,7 +8,11 @@ This is a set of Ansible playbooks that allow you to spin up an Single Node Open
 
 * Another  KVM guest running Fedora 34 that provides DNS and DHCP services for the OpenShift Single Node Cluster KVM guest
 
+* HAProxy on the  KVM VSI  to route inbound traffid to the OpenShift cluster running on the private KVM NAT network
 
+  ![Architecture](images/snokvm.png)
+   <sup><sup>Figure 1. Architecture</sup></sup>
+    
 Running the master playbook to install the  OpenShift Single Node Cluster can be done with a single command but there are some prerequisites that must be in place  before running that command. 
 
 ## 1. Clone this repo 
@@ -186,7 +190,7 @@ ansible-playbook quickstart.yml
 
 ### 5.2 Monitoring progress
 
-Progress is displayed by Ansible via the terminal. The longest task is monitoring the Assited Insta;;er once the  install of teh cluster has kiccked off, Your screen swill look like the following:
+Progress is displayed by Ansible via the terminal. The longest task is monitoring the Assited Installer once the  install of the  cluster has kicked off. Your screen will look like the following:
 
 Login to the Assisted Installer portal [here](https://console.redhat.com/openshift/assisted-installer/clusters) to see more granular progress updates:
 
@@ -200,10 +204,10 @@ When the playbook completes the install the terminal window will look like the f
 
 ## 6. Accessing the cluster
 
-# 6.1 Access the cluster from  your local machine 
-To access your cluster  from  your local machine  setup you need to do the following:
+### 6.1 Access the cluster from  your local machine 
+To access your cluster from your local machine  setup you need to do the following:
 
-i. Add the contents of the  file *auth/[your cluster name].hosts* to your local  */etc/hosts* file
+i. Add the contents of the file *auth/[your cluster name].hosts* to your local  */etc/hosts* file
 
 ii. Open the file *auth/[your cluster name]-kubeadmin.json* to see your cluster credentials 
 
