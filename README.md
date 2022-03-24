@@ -13,9 +13,9 @@ This is a set of Ansible playbooks that allow you to spin up an Single Node Open
   ![Architecture](images/snokvm.png)
    <sup><sup>Figure 1. Architecture</sup></sup>
     
-Running the master playbook to install the  OpenShift Single Node Cluster can be done with a single command but there are some prerequisites that must be in place  before running that command. 
+Running the master playbook to install the  OpenShift Single Node Cluster can be done with a single command but there are some prerequisites that must be in place  before running that command.
 
-## 1. Clone this repo 
+## 1. Clone this repo
 
 From a terminal window, clone this Github repo to your local system.
 
@@ -31,10 +31,11 @@ Go to the **ansible** sub-folder of the cloned repos root folder. **Note:** All 
 
 ```
 
-## 2. Setup Ansible
-The playbooks have only  been tested with Ansible 2.9 (the Red Hat supported version) so it is recommended to use 2.9 to avoid potential incompatibilities  with other versions.
+## 2. Setup Local Machine
 
 ### 2.1 Install Ansible 2.9
+
+The playbooks have only  been tested with Ansible 2.9 (the Red Hat supported version) so it is recommended to use 2.9 to avoid potential incompatibilities  with other versions.
 
 The following table shows the install process for various Operating Systems:
 
@@ -43,11 +44,9 @@ The following table shows the install process for various Operating Systems:
 | RHEL/CentOS/Fedora/Rocky |  `dnf install epel-release`<br/>`dnf update`<br/>`dnf install ansible` |
 | Ubuntu/Debian | `sudo apt update`<br/>`sudo apt install software-properties-common`<br/>`sudo apt-add-repository --yes --update ppa:ansible/ansible`<br/>`sudo apt install ansible-2.9`|
 | MacOS | `brew install ansible@2.9` |
-| Windows | TBD | 
-
+| Windows | TBD |
 
 ### 2.2 Install required Ansible collections
-
 
 Run the following commands:
 
@@ -56,6 +55,17 @@ Run the following commands:
 
     ansible-galaxy collection install community.libvirt
 ```
+
+### 2.3 Install jq
+
+The jq utility is required to parse curl commands in the complete_sno_install step.
+
+| OS Family | Commands |
+| --- | --- |
+| RHEL/CentOS/Fedora/Rocky |  `dnf install jq` |
+| Ubuntu/Debian | `sudo apt install jq`|
+| MacOS | `brew install jq` |
+| Windows | TBD |
 
 ## 3. Get required credentials
 
@@ -67,8 +77,7 @@ The following table lists the  credentials required by the playbooks.
 | OpenShift Pull Secret | If you don't have a Red Hat subscription for OpenShift, you can get a free Developer one [here](https://developers.redhat.com/articles/faqs-no-cost-red-hat-enterprise-linux).<br/> Once you have a subscription, download the pull secret [here](https://console.redhat.com/openshift/install/pull-secret).|
 | OpenShift Cluster Manager API Token | Copy the secret from [here](https://console.redhat.com/openshift/token/show). Save it in a local file called `token.txt`.|
 
-
-##  4 Set the playbook variables 
+##  4 Set the playbook variables
 
 ### 4.1 Environment variables
 
@@ -129,21 +138,21 @@ localhost | SUCCESS => {
 }
 ```
 
-### 4.2 OpenShift Pull Secret and OpenShift Cluster Manager API Token 
+### 4.2 OpenShift Pull Secret and OpenShift Cluster Manager API Token
 
 #### 4.2.1 Pull Secret
 
 Copy the pull secret you downloaded in section **3.** (*pull-secret.txt*) to the *ansible/auth* folder in the directory tree of your local copy of this GH repo. 
 
-#### 4.2.2 Cluster Manager API Token 
+#### 4.2.2 Cluster Manager API Token
 
 Copy the API token file  you saved in section **3.** (*token.txt*) to the *ansible/auth* folder in the directory tree of your local copy of this GH repo. 
 
 #### 4.2.3 Required Playbook parameters
 
-i. Create a copy of the  the file *ansible/auth/all.example*  in  the directory tree of your local copy of this GH repo. The copy should be in the same folder and named *all*
+i. Create a copy of the  the file *ansible/group_vars/all.example*  in  the directory tree of your local copy of this GH repo. The copy should be in the same folder and named *all*
 
-ii. Edit the file  *ansible/auth/all* replacing all the values set to `"*****change me*****"` with valid values. The table below gives more details about the required and optional parameters.
+ii. Edit the file  *ansible/group_vars/all* replacing all the values set to `"*****change me*****"` with valid values. The table below gives more details about the required and optional parameters.
 
 | Parameter | Type |  Description | Required | Default Value |
 | --- | --- | --- | --- | --- |
@@ -156,9 +165,9 @@ ii. Edit the file  *ansible/auth/all* replacing all the values set to `"*****cha
 | setup_vsi_gui | Boolean | When set to true, the KVM VSI will be provioned with a GUI desktop and access via VNC will be configured. If false access to the KVM VSI will be via SSH only. | No | false |
 | sno_version | String | OpenShift version to install. Valid values are "4.8","4.9" and "4.10" | No | "4.10" |
 
-### 4.3 Validate the parameters 
+### 4.3 Validate the parameters
 
-Run the following playbook to validate the parameters 
+Run the following playbook to validate the parameters
 
 ```
   ansible-playbook validate_parms.yml
@@ -179,7 +188,7 @@ localhost                  : ok=12   changed=0    unreachable=0    failed=0    s
 
 In our testing the end to end process takes around 30-45 minutes although your mileage may vary depnding on network speed IBM Cloud region etc.
 
-### 5.1 Running the master playbook 
+### 5.1 Running the master playbook
 
 Run the following command:
 
@@ -207,7 +216,6 @@ ii. View the progress . The overall install progress is shown  at the right of t
   ![Install progress](images/installer-progress.png)
   <sub><sub>Figure 4. Install progress</sub></sub>
   
-
 ### 5.3 Playbook termination
 
 When the playbook completes the install the terminal window will look like the following. **Note:** If you selected  the GUI option for the KVM host install you will get additional details about accessing the KVM Host via VNC.
@@ -246,9 +254,9 @@ v. For SSH access to your single OpenShift node enter the following command:
   
 ### 6.2 Access when the GUI option for the KVM host was selected
 
-If you selected the  GUI option for the KVM host then you can access it via VNC . 
+If you selected the  GUI option for the KVM host then you can access it via VNC.
 
-i. Access the KVM host via SSH as described in section **6.1** 
+i. Access the KVM host via SSH as described in section **6.1**
 
 ii. Run the following commands to set the VNC password and restart the  VNC server
 
@@ -275,5 +283,3 @@ AS long as you still have the the same *group_var/all* file that you used to ins
 ``` 
   ansible-playbook teardown_km_.yml
 ```
-
-      
