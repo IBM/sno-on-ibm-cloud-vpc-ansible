@@ -1,9 +1,0 @@
----
-name_prefix: djc-sno-ibmcloud-ai-api
-zone: us-east-3
-region: us-east
-resource_group_name: "djc-rg"
-setup_vsi_gui: false
-sno_cluster_name: sno49kvm6
-sno_domain_name: ibm-build-team.cloud
-sno_version: "4.10"

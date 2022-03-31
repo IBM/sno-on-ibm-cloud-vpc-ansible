@@ -68,7 +68,7 @@
         headers:
           Authorization:  "{{ 'Bearer ' + refresh_token }}"
         return_content: yes
-        status_code: [202.400]
+        status_code: [202,400]
       register: start_response
 
     - name: Create marker file

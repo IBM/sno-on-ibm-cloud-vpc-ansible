@@ -1,6 +1,10 @@
 .DS_Store
 **/.DS_Store
 ansible/group_vars/*
+ansible/group_vars/all
 !ansible/group_vars/all.example
 ansible/auth/*
 !ansible/auth/.donotdelete
+run-quickstart-notes.md
+ansible/TEST_ANSIBLE_SNO_KVM_apikey.txt
+ansible/ocm-darwin-amd64

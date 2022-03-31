@@ -1,8 +1,8 @@
 ---
-name_prefix: "*****change me*****"
-zone: "*****change me*****"
-region: "*****change me*****"
-resource_group_name: ""*****change me*****""
-sno_domain_name: "*****change me*****"
-sno_cluster_name: "*****change me*****"
-setup_vsi_gui: false
+name_prefix: "CHANGE_NAMEPREFIX"
+zone: "CHANGE_ZONE"
+region: "CHANGE_REGION"
+resource_group_name: "CHANGE_RESOURCEGROUP"
+sno_domain_name: "CHANGE_DOMAIN"
+sno_cluster_name: "CHANGE_CLUSTERNAME"
+setup_vsi_gui: true

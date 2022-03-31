@@ -5,14 +5,11 @@
     - community.general
     - ansible.posix
 
-
   roles:
     - role: validate_parms
       when: vars_validated is not defined
     - role: get_floating_ip_address
       when: fip is not defined or fip.address is not defined
-
-  
 
   post_tasks:
     - name: Generate SSH keypair for accessing KVM guests from host
