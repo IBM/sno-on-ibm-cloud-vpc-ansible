@@ -1,10 +1,10 @@
 ---
-- name: Verify that IBM Cloud API KEY is defined
+- name: Verify that IBM Cloud API KEY is defined in env if not a var
   assert:
     that: lookup('env','IC_API_KEY') != ""
     fail_msg: "IC_API_KEY env variable is required for this playbook "
     success_msg: "IBM Cloud API KEY is defined"
-
+  when: IC_API_KEY is undefined
 
 - name: Validate OpenShift version
   assert:
@@ -17,7 +17,13 @@
     that: "setup_vsi_gui is boolean"
     fail_msg: "variable setup_vsi_gui must be of type boolean"
   when: setup_vsi_gui is defined
-  
+
+- name: Verify IC_API_KEY parameter is defined if not in env
+  assert:
+    that: 'IC_API_KEY is defined and IC_API_KEY is string'
+    fail_msg: "variable IC_API_KEY must be defined if not in env "
+  when: lookup('env','IC_API_KEY') == ""
+
 - name: Verify sno_domain_name parameter
   assert:
     that: 'sno_domain_name is defined and sno_domain_name is string and sno_domain_name is regex("^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.[a-zA-Z]{2,}$")'
