@@ -54,7 +54,7 @@ Running the master playbook to install the  OpenShift Single Node cluster can be
 From a terminal window, clone this Github repo to your local system.
 
 ```bash
-git clone <repo_url>
+git clone https://github.ibm.com/hcbt/sno-on-ibm-cloud-vpc-ansible.git
 ```
 
 Go to the **ansible** sub-folder of the cloned repos root folder. **Note:** All subsequent command line instructions assume that you will be in this folder.
