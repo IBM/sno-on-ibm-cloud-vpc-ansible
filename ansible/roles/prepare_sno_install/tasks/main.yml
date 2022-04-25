@@ -1,4 +1,6 @@
 ---
+# OCM API Token (refresh_token) for authentication
+# https://console.redhat.com/openshift/token/show
 - name: Assisted installer token
   uri:
     url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
@@ -172,6 +174,10 @@
   set_fact:
     download_url: "{{ image_url_response.json.download_url }}"
 
-- name: Download URL for  debugging
+- name: Image_url_response.json for  debugging
+  debug:
+    var: image_url_response.json
+
+- name: Download URL for debugging
   debug:
     var: download_url
