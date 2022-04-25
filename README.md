@@ -60,7 +60,9 @@ git clone https://github.ibm.com/hcbt/sno-on-ibm-cloud-vpc-ansible.git
 Go to the **ansible** sub-folder of the cloned repos root folder. **Note:** All subsequent command line instructions assume that you will be in this folder.
 
 ```bash
-cd sno-on-ibm-cloud-vpc-ansible/ansible
+cd sno-on-ibm-cloud-vpc-ansible
+export HOME_DIR=$(pwd)
+cd ansible
 ```
 
 ## 2. Setup Local Machine
@@ -221,22 +223,22 @@ mv token.txt auth/
 
 i. Create a copy of the file *ansible/group_vars/all.example* in the same folder, named *all*
 
-    ```bash
-    cp group_vars/all.example group_vars/all
-    ```
+```bash
+cp group_vars/all.example group_vars/all
+```
 
-    The `all` file looks as follows:
+The `all` file looks as follows:
 
-    ```yaml
-    ---
-    name_prefix: "CHANGE_NAMEPREFIX"
-    zone: "CHANGE_ZONE"
-    region: "CHANGE_REGION"
-    resource_group_name: "CHANGE_RESOURCEGROUP"
-    sno_domain_name: "CHANGE_DOMAIN"
-    sno_cluster_name: "CHANGE_CLUSTERNAME"
-    setup_vsi_gui: true
-    ```
+```yaml
+---
+name_prefix: "CHANGE_NAMEPREFIX"
+zone: "CHANGE_ZONE"
+region: "CHANGE_REGION"
+resource_group_name: "CHANGE_RESOURCEGROUP"
+sno_domain_name: "CHANGE_DOMAIN"
+sno_cluster_name: "CHANGE_CLUSTERNAME"
+setup_vsi_gui: true
+```
 
 ii. Edit the file  *ansible/group_vars/all* replacing all the values set to `"*****change me*****"` with valid values. The table below gives more details about the required and optional parameters.
 
@@ -268,8 +270,6 @@ ibmcloud resource group-create $MY_RESOURCEGROUP
 export MY_DOMAIN="$MY_NAMEPREFIX.cloud"
 echo $MY_DOMAIN
 export MY_CLUSTERNAME=<clustername, e.g. sno49kvm6cl1>
-
-sed -i "" "s/<SITE_NAME>/$REPO/" mkdocs.yml
 
 sed -i "" "s/CHANGE_NAMEPREFIX/$MY_NAMEPREFIX/g" $HOME_DIR/ansible/group_vars/all
 sed -i "" "s/CHANGE_ZONE/$MY_ZONE/g" $HOME_DIR/ansible/group_vars/all
