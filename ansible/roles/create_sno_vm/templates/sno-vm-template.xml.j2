@@ -21,7 +21,7 @@
 
 
   <cpu mode='host-model' match='exact' check='none' />
-  
+
   <clock offset='utc'>
     <timer name='rtc' tickpolicy='catchup'/>
     <timer name='pit' tickpolicy='delay'/>
@@ -176,7 +176,11 @@
       <alias name='rng0'/>
       <address type='pci' domain='0x0000' bus='0x06' slot='0x00' function='0x0'/>
     </rng>
+    <tpm model='tpm-tis'>
+      <backend type='emulator' version='2.0'>
+        <device path='/dev/tpm0'/>
+      </backend>
+    </tpm>
   </devices>
 
 </domain>
-
