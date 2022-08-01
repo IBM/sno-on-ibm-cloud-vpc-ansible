@@ -1,14 +1,33 @@
-# Spin up a Single Node OpenShift Cluster on IBM Cloud
+# Spin up a Single Node OpenShift Cluster With One Command
 
-This repository includes a collection of Ansible playbooks that provisions a Single Node OpenShift cluster on Linux KVM on IBM Cloud using Red Hat Assisted Service.
+In this tutorial we will be using an Ansible playbook to automate the creation of a small production-ready single node OpenShift cluster. For the installation, we will be utilizing the new Red Hat Assisted Installer to manage the installation of OpenShift and make the process a much easier. This single node OpenShift instance is one of the smallest production ready instances of OpenShift that can be deployed to resource constrained environments for demos, Proof of Concepts, or even edge deployments on-prem. Single node OpenShift is also ideal for running workloads close to the factory floor where time sensitive decisions need to be made without the latency of communicating to the cloud. Although this tutorial deploys to IBM Cloud, many of these playbooks can be reused for on-prem deployments by targeting a local virtual or bare metal machine instead of one on IBM Cloud. Likewise, this tutorial can also be replicated to infrastructure on other cloud platforms such as Microsoft Azure or AWS.
+
+## Prerequisites:
+- IBM Cloud Account with a Pay-as-you-go subscription
+- [Red Hat Account](https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/registrations?client_id=https%3A%2F%2Fwww.redhat.com%2Fwapps%2Fugc-oidc&redirect_uri=https%3A%2F%2Fwww.redhat.com%2Fwapps%2Fugc%2Fprotected%2Faccount.html&response_type=code&scope=openid)
+- Ansible 2.9
+- Basic knowledge of Ansible is helpful but not required
+- [IBM Cloud CLI](https://cloud.ibm.com/docs/cli?topic=cli-install-ibmcloud-cli) 
+
+## Time required
+- This tutorial will take 1-2 hours to complete.
+
+
+## Overview
+If you haven't used Ansible before, you can think of it as a tool that allows you to write automation scripts in the form of yaml files called *playbooks*. What makes Ansible so powerful compared to writing bash scripts is the rich set of collections available via Ansible Galaxy that allow you to perform provisioning and configuration tasks with ease. These collections include moodules that make it easy to integrate with other tools and even provision infrastructure on public clouds. For the playbooks in this tutorial, we will be using the IBM Cloud collection to configure the resources on IBM Cloud. 
+
+This tutorial contains a collection of Ansible playbooks that provisions a Single Node OpenShift cluster on Linux KVM on IBM Cloud using Red Hat Assisted Service. This approach of using Ansible playbooks along with the Red Hat Assisted Installer greatly reduces the time to install OpenShift and makes the installation process more user friendly because of the new Assisted Installer console that shows the progress of the installation. 
 
 The playbooks are bundled into the following modules:
 
-* ic.vpc.v0.1 (IBM Cloud, VPC Infrastructure, v0.1),
-* ic.vsi.v0.1 (IBM Cloud, Virtual Server Instance (VSI) with Linux KVM, v0.1),
-* ic.sno.v0.1 (IBM Cloud, Single Node OpenShift (SNO), v0.1)
+* ic.vpc.v0.1 - Infrastructure Privisioning
+    * (IBM Cloud, VPC Infrastructure, v0.1)
+* ic.vsi.v0.1 - Virtualization 
+    * (IBM Cloud, Virtual Server Instance (VSI) with Linux KVM, v0.1)
+* ic.sno.v0.1 - Single Node OpenShift Installation
+    * (IBM Cloud, Single Node OpenShift (SNO), v0.1)
 
-  ![Ansible playbooks](images/ansible_playbooks.png)
+![Ansible playbooks](images/ansible_playbooks.png)
 
    <sup><sup>Figure 1. Ansible Playbooks included</sup></sup>
 
@@ -16,12 +35,11 @@ In detail the modules provision the following resources on IBM Cloud:
 
 * VPC Infrastructure (Network), including:
 
-    * VPC,
+    * Virtual Private Cloud (VPC),
     * Subnet,
     * Floating IP,
     * Access Control List (ACL),
-    * Security Group,
-    * Floating IP,
+    * Security Group
 
 * Compute, including:
 
@@ -36,11 +54,11 @@ In detail the modules provision the following resources on IBM Cloud:
 
 * Single Node Openshift (SNO) cluster. The playbooks use Red Hat's [Assisted Installer service](https://github.com/openshift/assisted-service/tree/master/docs/user-guide) to install OpenShift.
 
-You can create a workflow to provision resources using the AWX Project or Ansible Tower.
+<!-- You can create a workflow to provision resources using the AWX Project or Ansible Tower.
 
   ![AWX workflow example](images/awx_workflow.png)
 
-   <sup><sup>Figure 2. AWX workflow example</sup></sup>
+   <sup><sup>Figure 2. AWX workflow example</sup></sup> -->
 
 Having provisioned the above resources results in the following architecture.
 
@@ -49,12 +67,14 @@ Having provisioned the above resources results in the following architecture.
 
 Running the master playbook to install the  OpenShift Single Node cluster can be done with a single command but there are some prerequisites that must be in place before running that command.
 
+# Steps:
+
 ## 1. Clone this repo
 
 From a terminal window, clone this Github repo to your local system.
 
 ```bash
-git clone https://github.ibm.com/hcbt/sno-on-ibm-cloud-vpc-ansible.git
+git clone https://github.com/IBM/sno-on-ibm-cloud-vpc-ansible.git
 ```
 
 Go to the **ansible** sub-folder of the cloned repos root folder. **Note:** All subsequent command line instructions assume that you will be in this folder.
@@ -109,42 +129,32 @@ The following table lists the  credentials required by the playbooks.
 | IBM Cloud API Key | See instructions [here](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui). Download the API key as a file  or copy the value to your clipboard and paste it into a local file.|
 | OpenShift pull secret | If you don't have a Red Hat subscription for OpenShift, you can get a free Developer one [here](https://developers.redhat.com/articles/faqs-no-cost-red-hat-enterprise-linux).<br/> Once you have a subscription, download the pull secret [here](https://console.redhat.com/openshift/install/pull-secret). Note: make sure you use the `Download` option and not the `copy` option. The `copy` option removes the double quotes, which will be considered invalid JSON and cause the playbooks to fail. |
 | OpenShift Cluster Manager API Token | Copy the secret from [here](https://console.redhat.com/openshift/token/show). Save it in a local file called `token.txt`.|
+---
 
-To create an IBM Cloud apikey, you must first be logged into your IBM Cloud account.
+---
+**Optionally**: You can choose to create an IBM Cloud apikey via the IBM Cloud cli instead of through the UI as linked above.
 
-```bash
-ibmcloud login [-sso]
-```
-
-You can create a new IBM Cloud apikey as follows:
+Once logged into your IBM Cloud account, you can create a new IBM Cloud apikey as follows:
 
 ```bash
-export IC_API_KEY_NAME=<apikey-name>
+export IC_API_KEY_NAME="IBM Cloud SNO"
 ibmcloud iam api-key-create $IC_API_KEY_NAME -d "API key for SNO on KVM on VSI for VPC" --file $IC_API_KEY_NAME.txt
 export IC_API_KEY=$(cat $IC_API_KEY_NAME.txt | jq -r '.apikey')
 echo $IC_API_KEY
 ```
-
-Create an environment variable for your OpenShift pull secret,
+---
+<!-- Create an environment variable for your OpenShift pull secret,
 
 ```bash
 export RHOCP_PULLSECRET=<pull secret>
 echo $RHOCP_PULLSECRET > pull-secret.txt
-```
-
-Create an environment variable for the OpenShift Cluster Manager API Token,
-
-```bash
-export RHOCP_TOKEN=<api token>
-echo $RHOCP_TOKEN > token.txt
-cat token.txt
-```
+``` -->
 
 ## 4. Set the playbook variables
 
 ### 4.1 Environment variables
 
-The playbooks expect your  IBM Cloud API Key to be available as an environment variable. Execution will fail if this is not the  case. From the terminal window you opened in section **1.**  export the IBM Cloud API Key as follows:
+The playbooks expect your  IBM Cloud API Key to be available as an environment variable. If you created the api key from the IBM Cloud CLI in the optional section above, this will have already been done for you. If you created the the api key from the IBM Cloud website, then you will need to follow the steps below to create an environment variable. Execution will fail if this is not the  case. From the terminal window you opened in section **1.**  export the IBM Cloud API Key as follows:
 
 ```bash
 export IC_API_KEY="<your api key value>"
@@ -253,7 +263,9 @@ ii. Edit the file  *ansible/group_vars/all* replacing all the values set to `"**
 | setup_vsi_gui | Boolean | When set to true, the KVM VSI will be provioned with a GUI desktop and access via VNC will be configured. If false access to the KVM VSI will be via SSH only. | No | false |
 | sno_version | String | OpenShift version to install. Valid values are "4.8","4.9" and "4.10" | No | "4.10" |
 
-To configure *ansible/group_vars/all*, on a Mac run the following commands,
+To edit the *ansible/grou_vars/all* file you can open the file in a text editor of choice.
+
+Optionally, if you are running on a Mac, you may configure *ansible/group_vars/all* by running the following commands, replacing the values in *<>* with your values.
 
 ```bash
 export MY_NAMEPREFIX=<choose a name prefix>
@@ -279,7 +291,32 @@ sed -i "" "s/CHANGE_DOMAIN/$MY_DOMAIN/" $HOME_DIR/ansible/group_vars/all
 sed -i "" "s/CHANGE_CLUSTERNAME/$MY_CLUSTERNAME/" $HOME_DIR/ansible/group_vars/all
 ```
 
-On Linux, use `-i` instead of `-i ""`.
+On Linux, use the following:
+
+```bash
+export MY_NAMEPREFIX=<choose a name prefix>
+ibmcloud is regions
+export MY_REGION=<select a region name>
+ibmcloud target -r $MY_REGION
+ibmcloud is zones
+export MY_ZONE=<select a zone in your targeted region>
+export MY_RESOURCEGROUP=$MY_NAMEPREFIX-rg
+echo $MY_RESOURCEGROUP
+
+ibmcloud resource group-create $MY_RESOURCEGROUP
+
+export MY_DOMAIN="$MY_NAMEPREFIX.cloud"
+echo $MY_DOMAIN
+export MY_CLUSTERNAME=<clustername, e.g. sno49kvm6cl1>
+
+sed -i "s/CHANGE_NAMEPREFIX/$MY_NAMEPREFIX/g" $HOME_DIR/ansible/group_vars/all
+sed -i "s/CHANGE_ZONE/$MY_ZONE/g" $HOME_DIR/ansible/group_vars/all
+sed -i "s/CHANGE_REGION/$MY_REGION/" $HOME_DIR/ansible/group_vars/all
+sed -i "s/CHANGE_RESOURCEGROUP/$MY_RESOURCEGROUP/" $HOME_DIR/ansible/group_vars/all
+sed -i "s/CHANGE_DOMAIN/$MY_DOMAIN/" $HOME_DIR/ansible/group_vars/all
+sed -i "s/CHANGE_CLUSTERNAME/$MY_CLUSTERNAME/" $HOME_DIR/ansible/group_vars/all
+```
+
 
 Check the result,
 
@@ -319,6 +356,8 @@ Run the following command:
 ansible-playbook quickstart.yml
 ```
 
+While the playbook is running feel free to step away while process completes as it will take a while.
+
 ### 5.2 Monitoring progress
 
 Progress is displayed by Ansible via the terminal. The longest task is monitoring the Assisted Installer once the install of the cluster has been kicked off. Your screen will look like the following:
@@ -346,6 +385,8 @@ When the playbook completes the install the terminal window will look like the f
 
   ![Access info](images/access-info.png)
   <sub><sub>Figure 7. Access info </sub></sub>
+
+  With the playbook complete, you are almost ready to access the cluster. Next, we need to setup access to the cluster via terminal and OpenShift console via the browser. 
 
 ## 6. Accessing the cluster
 
@@ -434,3 +475,11 @@ Solution: increase the timeout value in the relevant task, e.g. `Wait for VM to 
     sleep: 10
     state: started
 ```
+
+## Summary
+
+In this tutorial we went through the process of deploying your own single node OpenShift cluster on IBM Cloud using the new Red Hat Assisted Installer tool. We leveraged Ansible through a series of playbooks to automate the creation of the infrastructure on IBM Cloud and cluster installation with Assisted Installer.
+
+## Next Steps
+
+Now that you have an understanding of how the OpenShift installation process works, you can look to extend the process even further by adding additional playbooks for things such as operator installs, cluster admin tasks, and even deploying applications to the newly created cluster. To make this solution more repeatable and enterprise ready you can import these playbooks into AWX or Ansible Automation Controller which would offer a management console for playbook runs as well as exposing an API that would allow you to integrate AWX workflows into existing systems or even creating a front end for a cluster provisioning process.  
