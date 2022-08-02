@@ -21,7 +21,7 @@
   gather_facts: false
   become: yes
   vars:
-    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
+    ansible_ssh_private_key_file: "~/.ssh/{{ name_prefix }}-id_rsa"
 
   roles:
     - role: create_utility_vm

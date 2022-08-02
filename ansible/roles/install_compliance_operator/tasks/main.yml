@@ -1,0 +1,60 @@
+---
+- name: OpenShift Compliance Operator install 
+  tasks:
+  - name: Log in (obtain access token)
+    community.okd.openshift_auth:
+      username: "{{ cluster.username }}"
+      password: "{{ cluster.password }}"
+      host: "{{ fip.address }}:6443"
+      validate_certs: false
+    register: openshift_auth_results
+
+  - name: Create a k8s namespace
+    community.okd.k8s:
+      host: "{{ fip.address }}:6443"
+      api_key: "{{ openshift_auth_results.openshift_auth.api_key }}"
+      validate_certs: false
+      name: openshift-compliance
+      api_version: v1
+      kind: Namespace
+      state: present
+
+  - name: Install OpenShift Compliance Operator Group
+    community.okd.k8s:
+      host: "{{ fip.address }}:6443"
+      api_key: "{{ openshift_auth_results.openshift_auth.api_key }}"
+      state: present
+      validate_certs: false
+      state: present
+      definition:
+        apiVersion: operators.coreos.com/v1
+        kind: OperatorGroup
+        metadata:
+          name: openshift-compliance
+          namespace: openshift-compliance
+        spec:
+          targetNamespaces:
+            - openshift-compliance
+
+  - name: Install OpenShift Compliance Operator
+    community.okd.k8s:
+      host: "{{ fip.address }}:6443"
+      state: present
+      validate_certs: false
+      api_key: "{{ openshift_auth_results.openshift_auth.api_key }}"
+      state: present
+      definition:
+        apiVersion: operators.coreos.com/v1alpha1
+        kind: Subscription
+        metadata:
+          name: compliance-operator
+          namespace: openshift-compliance
+          labels:
+            operators.coreos.com/compliance-operator.openshift-compliance: ''
+        spec:
+          channel: '4.7'
+          installPlanApproval: Automatic
+          name: compliance-operator
+          source: redhat-operators
+          sourceNamespace: openshift-marketplace
+          startingCSV: compliance-operator.v0.1.32

@@ -1,10 +1,29 @@
 ---
+- name: Print token
+  ansible.builtin.debug:
+    msg: "{{ lookup('env','token') }}"
+    verbosity: 2
+
+- name: Print cluster name
+  ansible.builtin.debug:
+    msg: "{{ lookup('env','sno_cluster_name') }}"
+    verbosity: 2
+
 - name: Poll for cluster install completion for 90 minutes
   shell: |
-    scripts/poll-for-install-completion.sh {{ playbook_dir }}/auth/token.txt {{ sno_cluster_name }}
+    scripts/poll-for-install-completion.sh "{{ lookup('env','token') }}" "{{ lookup('env','sno_cluster_name') }}"
   register: poll_for_install_completion
   async: 5400
-  poll: 0 
+  poll: 0
+  when: sno_cluster_name is not defined
+
+- name: Poll for cluster install completion for 90 minutes
+  shell: |
+    scripts/poll-for-install-completion.sh "{{ lookup('env','token') }}" "{{ sno_cluster_name }}"
+  register: poll_for_install_completion
+  async: 5400
+  poll: 0
+  when: sno_cluster_name is defined
 
 - name: Wait for polling script to complete
   async_status: 
@@ -37,7 +56,7 @@
     body:
       grant_type: refresh_token
       client_id: cloud-services
-      refresh_token: "{{ lookup('file','auth/token.txt') }}"
+      refresh_token: "{{ lookup('env','token') }}"
     return_content: yes
 
   register: refresh_token_response
@@ -58,7 +77,7 @@
 
 - name: Save installer status
   set_fact:
-    installer_status: "{{ install_status_response.json | selectattr('name','eq',sno_cluster_name) | first }}"
+    installer_status: "{{ install_status_response.json | selectattr('name','eq',lookup('env','sno_cluster_name')) | first }}"
 
 - name: Save SNO ip address
   set_fact:
@@ -74,11 +93,11 @@
   register: get_kubeconfig_url_response
 
 
-- name: Get kubeconfig file
-  get_url:
-    url: "{{ get_kubeconfig_url_response.json.url }}"
-    dest: auth/{{ sno_cluster_name }}-kubeconfig
-    force: yes
+# - name: Get kubeconfig file
+#   get_url:
+#     url: "{{ get_kubeconfig_url_response.json.url }}"
+#     dest: {{ playbook_dir }}/{{ sno_cluster_name }}-kubeconfig
+#     force: yes
 
 - name: Get kubeadmin creds
   get_url:
@@ -86,6 +105,6 @@
      headers:
        Authorization:  "{{ 'Bearer ' + refresh_token }}"
        accept: "application/json"
-     dest: auth/{{ sno_cluster_name }}-kubeadmin.json
+     dest: "{{ playbook_dir }}/{{ sno_cluster_name }}-kubeadmin.json"
      force: yes
 

@@ -47,6 +47,6 @@
     host: "{{ sno_ip_address }}"
     port: 22
     delay: 20
-    timeout: 360
+    timeout: 180
     sleep: 10
     state: started

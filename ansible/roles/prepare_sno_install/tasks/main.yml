@@ -1,6 +1,4 @@
 ---
-# OCM API Token (refresh_token) for authentication
-# https://console.redhat.com/openshift/token/show
 - name: Assisted installer token
   uri:
     url: https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
@@ -10,7 +8,7 @@
     body:
       grant_type: refresh_token
       client_id: cloud-services
-      refresh_token: "{{ lookup('file','auth/token.txt') }}"
+      refresh_token: "{{ lookup('env','token') }}"
     return_content: yes
 
   register: refresh_token_response
@@ -21,7 +19,7 @@
 
 - name: Escaped pull secret
   set_fact:
-    escaped_pull_secret: "{{ lookup('file','auth/pull-secret.txt') | replace('\"', '\\\"') }}"
+    escaped_pull_secret: "{{ lookup('env','pull_secret') | replace('\"', '\\\"') }}"
 
 - name: Get clusters
   uri:
@@ -46,7 +44,7 @@
 
     - name: Clean up any old marker files
       file:
-        path: "auth/.{{ sno_cluster_name }}-install-started"
+        path: "{{ playbook_dir }}/.{{ sno_cluster_name }}-install-started"
         state: absent
 
     - name: Register a cluster
@@ -66,7 +64,7 @@
             "pull_secret": "{{ escaped_pull_secret }}",
             "base_dns_domain": "{{ sno_domain_name }}",
             "vip_dhcp_allocation": false,
-            "ssh_public_key": "{{ lookup('file', 'auth/' + name_prefix + '-remote-id_rsa.pub' ) }}",
+            "ssh_public_key": "{{ lookup('file', '~/.ssh/' + name_prefix + '-remote-id_rsa.pub' ) }}",
             "machine_networks": [
                 {
                     "cidr": "{{ sno_machine_cidr  }}"
@@ -174,10 +172,6 @@
   set_fact:
     download_url: "{{ image_url_response.json.download_url }}"
 
-- name: Image_url_response.json for  debugging
-  debug:
-    var: image_url_response.json
-
-- name: Download URL for debugging
+- name: Download URL for  debugging
   debug:
     var: download_url

@@ -24,7 +24,7 @@
   gather_facts: false
   become: yes
   vars:
-    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
+    ansible_ssh_private_key_file: "~/.ssh/{{ name_prefix }}-id_rsa"
 
   roles:
     - setup_rdp
@@ -44,7 +44,7 @@
 
                 To set the kvmadmin password login in via SSH using the command:
 
-                ssh -i {{ playbook_dir }}/auth/{{ name_prefix }}-local-id_rsa kvmadmin@{{ fip.address }}
+                ssh -i ~/.ssh/{{ name_prefix }}-id_rsa kvmadmin@{{ fip.address }}
 
                 Then run the following command:
 

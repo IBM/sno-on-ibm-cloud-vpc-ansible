@@ -24,7 +24,7 @@
   gather_facts: false
   become: yes
   vars:
-    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
+    ansible_ssh_private_key_file: "~/.ssh/{{ name_prefix }}-id_rsa"
 
   roles:
     - setup_vnc
@@ -41,7 +41,7 @@
                 The GUI env with VNC access has been configured !
                 You need to set your VNC password before accessing via VNC.
                 Login in via SSH using the command:
-                     ssh -i {{ playbook_dir }}/auth/{{ name_prefix }}-local-id_rsa kvmadmin@{{ fip.address }}
+                     ssh -i ~/.ssh/{{ name_prefix }}-id_rsa kvmadmin@{{ fip.address }}
                 Set the VNC password by running the following command:
                     vncpasswd
                 You will also need to set a password for the kvmadmin user because the

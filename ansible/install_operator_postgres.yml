@@ -1,0 +1,87 @@
+---
+- name: OpenShift Compliance Operator install 
+  hosts: localhost
+  collections:
+   - ibm.cloudcollection
+  tasks:
+
+    - name: Check if cluster Exists
+      ibm_container_cluster_info:
+        name: "{{ sno_cluster_name }}"
+      failed_when:
+        - cluster_output.rc != 0
+        - '"cluster could not be found" not in cluster_output.stderr'
+      register: cluster_output
+
+    - name: Save Cluster info
+      set_fact:
+        cluster_info: "{{ cluster_output.resource }}"
+
+    - name: Get OpenShift Token Endpoint
+      uri:
+        url: "{{ cluster_info.public_service_endpoint_url}}/.well-known/oauth-authorization-server"
+        method: Get
+        body_format: json
+      register: issuer_output
+
+    - name: Get Openshift Token
+      uri:
+        url: "{{issuer_output.json.authorization_endpoint}}?client_id=openshift-challenging-client&response_type=token"
+        method: GET
+        user: apikey
+        password: "{{ lookup('env', 'IC_API_KEY') }}"
+        headers: 
+          Content-Type: application/json
+          X-CSRF-Token: "a"
+        follow_redirects: none
+        status_code: 
+          - 302
+      register: openshift_token
+      no_log: true
+
+    - name: Install Postgres Operator Group
+      uri: 
+        url: "{{ cluster_info.public_service_endpoint_url}}/apis/operators.coreos.com/v1/namespaces/default/operatorgroups"
+        method: POST
+        body_format: json
+        status_code: 
+          - 200
+          - 201
+          - 409
+        headers:
+          Authorization: "Bearer {{ openshift_token.location.split('=')[1].split('&')[0] }}"
+        body:
+          apiVersion: operators.coreos.com/v1
+          kind: OperatorGroup
+          metadata:
+            name: openshift-postgres
+          spec:
+            targetNamespaces:
+              - openshift-postgres
+
+    - name: Install Postgres Operator
+      uri: 
+        url: "{{ cluster_info.public_service_endpoint_url}}/apis/operators.coreos.com/v1alpha1/namespaces/openshift-postgres/subscriptions"
+        method: POST
+        body_format: json
+        status_code: 
+          - 200
+          - 201
+          - 409
+        headers:
+          Authorization: "Bearer {{ openshift_token.location.split('=')[1].split('&')[0] }}"
+        body:
+          apiVersion: operators.coreos.com/v1alpha1
+          kind: Subscription
+          metadata:
+            name: crunchy-postgres-operator
+            namespace: openshift-postgres
+            labels:
+              operators.coreos.com/crunchy-postgres-operator.openshift-postgres: ''
+          spec:
+            channel: 'v5'
+            installPlanApproval: Automatic
+            name: crunchy-postgres-operator
+            source: certified-operators
+            sourceNamespace: openshift-marketplace
+            startingCSV: postgresoperator.v5.1.1

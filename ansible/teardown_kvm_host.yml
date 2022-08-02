@@ -22,4 +22,4 @@
         - resource_group_name
 
   roles:
-    - teardown_kvm_host
+    - role: teardown_kvm_host

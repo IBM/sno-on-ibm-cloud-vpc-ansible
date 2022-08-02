@@ -1,0 +1,13 @@
+---
+- name: OpenShift Compliance Operator install 
+  hosts: localhost
+  collections:
+    - community.okd.k8s
+    - community.okd.openshift_auth
+
+  pre_tasks:
+    - role: get_floating_ip_address
+      when: fip is not defined or fip.address is not defined
+
+  roles:
+    - install_compliance_operator

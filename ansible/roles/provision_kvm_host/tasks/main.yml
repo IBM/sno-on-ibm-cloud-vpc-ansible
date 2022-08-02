@@ -46,7 +46,7 @@
 
 - name: Generate SSH key for localhost if not exists
   openssh_keypair:
-    path: "auth/{{ name_prefix }}-local-id_rsa"
+    path: "~/.ssh/{{ name_prefix }}-id_rsa"
     size: 4096
     mode: 0400
     state: present
@@ -54,7 +54,7 @@
 - name: Configure SSH Key
   ibm_is_ssh_key:
     name: "{{ name_prefix }}-ssh-key"
-    public_key: "{{ lookup('file', 'auth/' + name_prefix + '-local-id_rsa.pub') }}"
+    public_key: "{{ lookup('file', '~/.ssh/' + name_prefix + '-id_rsa.pub') }}"
     id: "{{ ssh_key.id | default(omit) }}"
     region: "{{ region }}"
     resource_group: "{{ resource_group.id }}"
@@ -206,4 +206,3 @@
       - port_max: 8022
         port_min: 8022
     region: "{{ region }}"
-    

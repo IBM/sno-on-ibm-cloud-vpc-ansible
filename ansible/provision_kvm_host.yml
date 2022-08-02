@@ -1,6 +1,8 @@
 ---
 - hosts: localhost
   gather_facts: true
+  collections:
+    - community.general
 
   roles:
     - role: validate_parms
@@ -21,7 +23,7 @@
         host: "{{ fip.address }}"
         port: 22
         delay: 20
-        timeout: 360
+        timeout: 180
         sleep: 10
         state: started
 
@@ -29,7 +31,7 @@
   gather_facts: false
   become: yes
   vars:
-    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
+    ansible_ssh_private_key_file: "~/.ssh/{{ name_prefix }}-id_rsa"
 
   pre_tasks:
 
@@ -66,6 +68,6 @@
          msg: |
                 Your VSI has been successfully provisioned !
                 Login in via SSH using the command:
-                ssh -i {{ playbook_dir }}/auth/{{ name_prefix }}-local-id_rsa root@{{ fip.address }}
+                ssh -i ~/.ssh/{{ name_prefix }}-id_rsa root@{{ fip.address }}
       debug:
         msg: "{{ msg.split('\n') }}"

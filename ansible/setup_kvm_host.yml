@@ -5,11 +5,14 @@
     - community.general
     - ansible.posix
 
+
   roles:
     - role: validate_parms
       when: vars_validated is not defined
     - role: get_floating_ip_address
       when: fip is not defined or fip.address is not defined
+
+  
 
   post_tasks:
     - name: Generate SSH keypair for accessing KVM guests from host
@@ -17,7 +20,7 @@
         mode: 0400
         size: 4096
         state: present
-        path: "auth/{{ name_prefix }}-remote-id_rsa"
+        path: "~/.ssh/{{ name_prefix }}-remote-id_rsa"
 
     - name: Add VSI to Ansible inventory
       add_host:
@@ -31,7 +34,7 @@
   gather_facts: false
   become: yes
   vars:
-    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
+    ansible_ssh_private_key_file: "~/.ssh/{{ name_prefix }}-id_rsa"
 
   roles:
     - setup_kvm_host
@@ -48,7 +51,7 @@
          msg: |
                 KVM has been succesfully setup on your VSI !
                 You can now run kvm commands by logging in via SSH:
-                    ssh -i {{ playbook_dir }}/auth/{{ name_prefix }}-local-id_rsa root@{{ fip.address }}
+                    ssh -i ~/.ssh/{{ name_prefix }}-id_rsa root@{{ fip.address }}
                 For root access you can prefix each command with sudo as shown below:
                     sudo dnf install -y my-favorite-utility
 

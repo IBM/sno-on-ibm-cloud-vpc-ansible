@@ -22,13 +22,13 @@
     - name: Generate custom hosts file for SNO cluster
       template:
         src: templates/hosts.j2
-        dest: auth/{{ sno_cluster_name }}.hosts
+        dest: "{{ playbook_dir }}/{{ sno_cluster_name }}.hosts"
 
 - hosts: kvm_vsi
   gather_facts: false
   become: yes
   vars:
-    ansible_ssh_private_key_file: "auth/{{ name_prefix }}-local-id_rsa"
+    ansible_ssh_private_key_file: "~/.ssh/{{ name_prefix }}-id_rsa"
 
   roles:
     - role: setup_haproxy
@@ -53,24 +53,29 @@
     - name: Show access info
       vars:
          msg: |
-                The OpenShift SNO cluster is ready ! 
+                The OpenShift SNO cluster is ready!
 
                 You can access the KVM host via SSH with:
-                  ssh -i {{ playbook_dir}}/auth/{{ name_prefix}}-local-id_rsa kvmadmin@kvmhost.{{ sno_cluster_name }}.{{ sno_domain_name }}
 
-                Your OpenShift cluster credentials are in the file {{ playbook_dir}}/auth/{{ sno_cluster_name }}-kubeadmin.json
+                ssh -i ~/.ssh/{{ name_prefix}}-id_rsa kvmadmin@kvmhost.{{ sno_cluster_name }}.{{ sno_domain_name }}
+                
+                Your OpenShift cluster credentials information:
 
+                {{lookup('ansible.builtin.file', '{{ playbook_dir }}/{{ sno_cluster_name }}-kubeadmin.json') }}
+                
                 To access the OpenShift console:
+                
+                1. Add the following contents to your /etc/hosts file:
 
-                  1. Add the contents of the file {{ playbook_dir}}/auth/{{ sno_cluster_name }}.hosts to your /etc/hosts file
+                {{lookup('ansible.builtin.file', '{{ playbook_dir }}/{{ sno_cluster_name }}.hosts') }}
+                
+                2. You can then access the OpenShift console at the following URL:
 
-                  2. You can then access the OpenShift console at the following  URL:
-                     https://console-openshift-console.apps.{{ sno_cluster_name }}.{{ sno_domain_name }}
-
+                https://console-openshift-console.apps.{{ sno_cluster_name }}.{{ sno_domain_name }}
+                
                 To access the cluster via the oc CLI run the following command:
 
-                  oc login api.{{ sno_cluster_name }}.{{ sno_domain_name }}:6443 and login with your credentials 
-
+                oc login api.{{ sno_cluster_name }}.{{ sno_domain_name }}:6443 and login with your credentials
       debug:
         msg: "{{ msg.split('\n') }}"
 

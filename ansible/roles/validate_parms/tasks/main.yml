@@ -45,24 +45,45 @@
     path: "auth/token.txt"
   register: token_file
 
-- name: Verify that token file exists
+- name: Verify that token is defined in env if not a file
+  assert:
+    that: lookup('env','token') != ""
+    fail_msg: "token env variable is required for this playbook "
+    success_msg: "token is defined"
+  when: token is undefined
+
+- name: Verify that token  exists
   assert:
     that: token_file.stat.exists
     fail_msg: "Token file auth/token.txt is required for this playbook"
-    success_msg: "Required token file exists"
+    success_msg: "Required token exists"
+  when: lookup('env','token') == ""
 
 - name: Look for pull secret file
   stat:
     path: "auth/pull-secret.txt"
   register: pull_secret_file
 
+- name: Verify that pull_secret is defined in env if not a file
+  assert:
+    that: lookup('env','pull_secret') != ""
+    fail_msg: "pull_secret env variable is required for this playbook "
+    success_msg: "pull_secret is defined"
+  when: pull_secret is undefined
+
 - name: Verify that pull secret file exists
   assert:
     that: pull_secret_file.stat.exists
     fail_msg: "Pull secret  file auth/pull-secret.txt is required for this playbook"
     success_msg: "Required pull secret file exists"
+  when: lookup('env','pull_secret') == ""
 
 - name: Save validation status as fact
   set_fact:
     cacheable: true
     vars_validated: true
+
+- name: Save validation status as stat
+  set_stats:
+    data:
+      vars_validated: true

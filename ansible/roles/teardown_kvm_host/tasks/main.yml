@@ -70,7 +70,7 @@
 
 - name: Remove local ssh-key
   openssh_keypair:
-    path: "auth/{{ name_prefix }}-local-id_rsa"
+    path: "~/.ssh/{{ name_prefix }}-id_rsa"
     state: absent
 
 
@@ -114,32 +114,32 @@
 
 - name: Remove remote ssh-key
   openssh_keypair:
-    path: "auth/{{ name_prefix }}-remote-id_rsa"
+    path: "~/.ssh/{{ name_prefix }}-remote-id_rsa"
     state: absent
 
 - name: Remove local ssh-key
   openssh_keypair:
-    path: "auth/{{ name_prefix }}-local-id_rsa"
+    path: "~/.ssh/{{ name_prefix }}-id_rsa"
     state: absent
 
 - name: Remove Cluster creds kubeadmin
   file:
-    path: "auth/{{ sno_cluster_name }}-kubeadmin.json"
+    path: "{{ playbook_dir }}/{{ sno_cluster_name }}-kubeadmin.json"
     state: absent
 
 - name: Remove Cluster creds kubeconfig
   file:
-    path: "auth/{{ sno_cluster_name }}-kubeconfig"
+    path: "{{ playbook_dir }}/{{ sno_cluster_name }}-kubeconfig"
     state: absent
 
 - name: Remove Cluster hosts file 
   file:
-    path: "auth/{{ sno_cluster_name }}.hosts"
+    path: "{{ playbook_dir }}/{{ sno_cluster_name }}.hosts"
     state: absent
 
 - name: Remove installer marker file 
   file:
-    path: "auth/.{{ sno_cluster_name }}-install-started"
+    path: "{{ playbook_dir }}/.{{ sno_cluster_name }}-install-started"
     state: absent
   
 - name: Assisted installer token
@@ -151,7 +151,7 @@
     body:
       grant_type: refresh_token
       client_id: cloud-services
-      refresh_token: "{{ lookup('file','auth/token.txt') }}"
+      refresh_token: "{{ lookup('env','token') }}"
     return_content: yes
 
   register: refresh_token_response

@@ -1,7 +1,9 @@
 #!/bin/sh
 
-offline_access_token=$(cat "$1")
-cluster_name="$2"
+offline_access_token=$1
+cluster_name=$2
+echo $offline_access_token
+echo $cluster_name
 
 retries=0
 max_retries=269
@@ -10,7 +12,7 @@ percent_complete=0
 
 percent_complete_from_api=0
 
-max_error_retries=10  # Allow up to 10 errors before throwing in the towel
+max_error_retries=270  # Allow up to 270 errors before throwing in the towel
 
 error_retries=0
 
@@ -56,6 +58,6 @@ then
   echo "Error: Install timed out after 90 minutes" 
   exit 1
 else
-  echo "Install successful !"
+  echo "Install successful!"
   exit 0
 fi

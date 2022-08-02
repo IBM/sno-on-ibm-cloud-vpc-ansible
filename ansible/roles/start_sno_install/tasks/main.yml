@@ -16,7 +16,7 @@
 
 - name: Check if marker file already exists and install start API call if it does
   stat:
-    path: "auth/.{{ sno_cluster_name }}-install-started"
+    path: "{{ playbook_dir }}/.{{ sno_cluster_name }}-install-started"
   register: install_started
 
 - name: Wait 5 mins for host to be ready for install
@@ -73,7 +73,7 @@
 
     - name: Create marker file
       lineinfile:
-        path: "auth/.{{ sno_cluster_name }}-install-started"
+        path: "{{ playbook_dir }}/.{{ sno_cluster_name }}-install-started"
         line: "not empty"
         state: present
         create: yes
