@@ -1,4 +1,4 @@
 vsi_profile: bx2d-16x64
-vsi_image: 'ibm-rocky-linux-8-5-minimal-amd64-2'
+vsi_image: 'ibm-rocky-linux-8-6-minimal-amd64-3'
 total_ipv4_address_count: 256
 network_interface_name: eth0
