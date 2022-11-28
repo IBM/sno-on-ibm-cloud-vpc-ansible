@@ -8,8 +8,8 @@
 
 - name: Validate OpenShift version
   assert:
-    that: "sno_version in ['4.8','4.9','4.10']"
-    fail_msg: "variable sno_version must be one of 4.8, 4.9 or 4.10"
+    that: "sno_version in ['4.8','4.9','4.10','4.11']"
+    fail_msg: "variable sno_version must be one of 4.8, 4.9, 4.10 or 4.11"
   when: sno_version is defined
 
 - name: Validate GUI flag
