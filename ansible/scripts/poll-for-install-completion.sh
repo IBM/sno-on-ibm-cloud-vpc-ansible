@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 offline_access_token=$(cat "$1")
 cluster_name="$2"
