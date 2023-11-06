@@ -1,4 +1,4 @@
 assisted_service_api: api.openshift.com
 sno_infraenv_name: "{{ sno_cluster_name }}-infraenv"
 sno_machine_cidr: "192.168.122.0/24"
-sno_version: "4.11"
+sno_version: "4.12"
